@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'pytalk'
-copyright = '2023, Jessica Tegner'
-author = 'Jessica Tegner'
+copyright = '2025, BlindMaster24'
+author = 'BlindMaster24'
 
 # check if the current commit is tagged as a release (vX.Y.Z) and set the version
 import subprocess, re
