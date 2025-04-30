@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'teamtalk.py'
+project = 'pytalk'
 copyright = '2023, Jessica Tegner'
 author = 'Jessica Tegner'
 
@@ -50,7 +50,7 @@ html_theme = 'scrolls'
 html_static_path = ['_static']
 
 sitemap_url_scheme = "{lang}/{version}/{link}"
-html_baseurl = 'https://teamtalkpy.readthedocs.io/'
+html_baseurl = 'https://pytalk.readthedocs.io/'
 html_extra_path = [
     "robots.txt",
 ]
@@ -60,8 +60,8 @@ autodoc_class_signature = "separated"
 autodoc_member_order = 'bysource'
 
 extlinks = {
-    'issue': ('https://github.com/JessicaTegner/teamtalk.py/issues/%s', '#%s'),
-    'version': ('https://pypi.org/project/teamtalk.py/%s', 'v%s'),
+    'issue': ('https://github.com/BlindMaster24/pytalk/issues/%s', '#%s'),
+    'version': ('https://pypi.org/project/pytalk/%s', 'v%s'),
 }
 
 # Links used for cross-referencing stuff in other documentation

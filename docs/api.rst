@@ -1,7 +1,7 @@
 API Reference
 ===============
 
-The following section outlines the API of teamtalk.py.
+The following section outlines the API of pytalk.
 
 .. note::
 

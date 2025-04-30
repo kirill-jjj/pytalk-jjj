@@ -1,11 +1,11 @@
 [project]
-name = "teamtalk-py"
+name = "py-talk"
 version = "1.4.0"
 description = "a simple but powerful pythonic library for making bots for the TeamTalk5 Conferencing System"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-authors = [{name = "JessicaTegner", email = "jessica.tegner@outlook.com"}]
+authors = [{name = "BlindMaster24", email = "jessica.tegner@outlook.com"}]
 keywords = ["teamtalk", "teamtalk5", "teamtalk sdk", "conferencing"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Issue Tracker" = "https://github.com/JessicaTegner/teamtalk.py/issues/"
+"Issue Tracker" = "https://github.com/BlindMaster24/pytalk/issues"
 
 [project.optional-dependencies]
 docs = [
@@ -45,11 +45,11 @@ ignore = ["E203", "E731", "W503", "D401", "DAR402", "DAR103"]
 exclude = [
     "docs/*",
     "tests/*",
-    "teamtalk/tools/*",
+    "pytalk/tools/*",
     "__pycache__",
-    "teamtalk/implementation/*",
-    "teamtalk/__init__.py",
-    "teamtalk/implementation/__init__.py",
+    "pytalk/implementation/*",
+    "pytalk/__init__.py",
+    "pytalk/implementation/__init__.py",
     "example.py",
 ]
 max-line-length = 125

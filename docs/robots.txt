@@ -1,1 +1,1 @@
-Sitemap: https://teamtalkpy.readthedocs.io/en/latest/sitemap.xml
+Sitemap: https://pytalk.readthedocs.io/en/latest/sitemap.xml

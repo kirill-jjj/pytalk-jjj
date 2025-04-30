@@ -495,7 +495,7 @@ wheels = [
 ]
 
 [[package]]
-name = "teamtalk-py"
+name = "py-talk"
 version = "1.4.0"
 source = { virtual = "." }
 dependencies = [

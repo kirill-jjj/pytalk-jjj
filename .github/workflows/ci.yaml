@@ -60,7 +60,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Download TeamTalk SDK
-        run: uv run python -c "import teamtalk"
+        run: uv run python -c "import pytalk"
 
       - name: Run linting
         run: uv run pre-commit run --all-files
@@ -70,7 +70,7 @@ jobs:
   #################################################################
   # 2. BUILD WHEEL (non–OS‑specific wheel, any single Python version)
   #################################################################
-  builder_teamtalk:
+  builder_pytalk:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -113,7 +113,7 @@ jobs:
   # 3. PUBLISH TO PyPI (only on version tags *already merged* to master)
   #################################################################
   publisher_release:
-    needs: [builder_teamtalk]
+    needs: [builder_pytalk]
 
     # Run only on tag push events whose ref starts with refs/tags/v…
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')

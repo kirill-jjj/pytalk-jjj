@@ -1,7 +1,7 @@
 example.py
 run.bat
-teamtalk/implementation/TeamTalk*
-teamtalk/ttsdk*
+pytalk/implementation/TeamTalk*
+pytalk/ttsdk*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

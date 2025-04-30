@@ -4,7 +4,7 @@ What's new
 This document holds a human-readable list of changes between releases.
 
 .. note::
-   teamtalk.py follows the Semantic Versioning guidelines. Releases are numbered with the following format:
+   pytalk follows the Semantic Versioning guidelines. Releases are numbered with the following format:
 
     <major>.<minor>.<patch>
 

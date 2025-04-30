@@ -1,4 +1,4 @@
-"""Channel module for teamtalk.py."""
+"""Channel module for pytalk."""
 
 from typing import List, Union
 
