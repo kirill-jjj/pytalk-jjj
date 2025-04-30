@@ -3,6 +3,7 @@
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 from ._utils import _get_tt_obj_attribute
 
+
 class SoundDevice:
     """Represents a sound device available in TeamTalk."""
 
@@ -16,7 +17,7 @@ class SoundDevice:
         self._device_struct = device_struct
         self._is_default_input = is_default_input
 
-    def __getattr__(self, name: str): # noqa: DAR101, DAR401
+    def __getattr__(self, name: str):  # noqa: DAR101, DAR401
         """Gets an attribute from the underlying SDK structure.
 
         Args:
@@ -35,12 +36,12 @@ class SoundDevice:
         try:
             value = _get_tt_obj_attribute(self._device_struct, name)
             if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
-                 return sdk.ttstr(value)
+                return sdk.ttstr(value)
             return value
         except AttributeError:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def id(self) -> int:
         """Gets the ID of the device.
 
@@ -49,7 +50,7 @@ class SoundDevice:
         """
         return self.device_id
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def name(self) -> str:
         """Gets the name of the device.
 
@@ -58,16 +59,16 @@ class SoundDevice:
         """
         return self.device_name
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def sound_system(self) -> int:
-         """Gets the sound system ID (e.g., WASAPI, ALSA).
+        """Gets the sound system ID (e.g., WASAPI, ALSA).
 
-         Returns:
-             The integer ID of the sound system.
-         """
-         return self.sound_system
+        Returns:
+            The integer ID of the sound system.
+        """
+        return self.sound_system
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def is_input(self) -> bool:
         """Returns True if this is an input device.
 
@@ -79,7 +80,7 @@ class SoundDevice:
         except AttributeError:
             return False
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def is_output(self) -> bool:
         """Returns True if this is an output device.
 
@@ -91,7 +92,7 @@ class SoundDevice:
         except AttributeError:
             return False
 
-    @property # noqa: DAR201
+    @property  # noqa: DAR201
     def is_default_input(self) -> bool:
         """Returns True if this is the default system input device.
 
@@ -100,7 +101,7 @@ class SoundDevice:
         """
         return self._is_default_input
 
-    def __repr__(self) -> str: # noqa: DAR201
+    def __repr__(self) -> str:  # noqa: DAR201
         """Return a developer-friendly string representation of the device.
 
         Returns:
@@ -117,8 +118,8 @@ class SoundDevice:
             pass
         type_str = "/".join(input_output)
         try:
-             return f"SoundDevice(id={self.id}, name='{self.name}{default_marker}', type='{type_str}')"
+            return f"SoundDevice(id={self.id}, name='{self.name}{default_marker}', type='{type_str}')"
         except AttributeError:
-             _id = getattr(self._device_struct, 'nDeviceID', 'N/A')
-             _name = sdk.ttstr(getattr(self._device_struct, 'szDeviceName', 'N/A'))
-             return f"SoundDevice(id={_id}, name='{_name}{default_marker}', type='{type_str}')"
+            _id = getattr(self._device_struct, 'nDeviceID', 'N/A')
+            _name = sdk.ttstr(getattr(self._device_struct, 'szDeviceName', 'N/A'))
+            return f"SoundDevice(id={_id}, name='{_name}{default_marker}', type='{type_str}')"
