@@ -24,6 +24,29 @@ Fixed
 
 - Fixed documentation not being generated correctly.
 
+:version:`1.4.1` - 2025-05-01
+---------------------------------
+
+This release marks a significant transition! The library is now **Pytalk**, residing in its own dedicated repository. This separation stems from the current maintainer's decision to pursue a distinct development path, introducing changes that may differ from the original vision for teamtalk.py held by its previous owner. Driven by differing opinions on future development, a desire for more rapid updates, and the goal of making specific improvements, Pytalk now operates independently as a separate library. As part of this new direction, the restructuring also aims to align Pytalk more closely with the user-friendly patterns found in libraries like discord.py/py-cord, enhancing the developer experience.
+
+Breaking Changes & Important Notices
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- **Project Renamed:** The library is now officially ``pytalk``. This project is independent and not related to ``teamtalk.py``.
+  **Action Required:** You **must** update your import statements (e.g., change ``import teamtalk`` to ``import pytalk``) and any other code references. Please review the updated documentation for new conventions.
+- **Separate Repository:** Pytalk has been moved to its own repository.
+- **PyPI Availability:** Versions prior to 1.4.1 under the old name will **no longer be available** for installation from PyPI. You must use version 1.4.1 or newer of ``pytalk``.
+- **Changelog History:** While older versions are unavailable on PyPI, previous changelog entries will be maintained within the new repository for historical reference.
+
+Fixes / Improvements
+~~~~~~~~~~~~~~~~~~~~
+- **Complete Audio Function Overhaul:** All audio-related functions have been thoroughly reviewed, fixed, and rewritten for improved stability and correctness.
+- **Accurate Audio Calculations:** Audio calculation formulas were taken directly from the official TeamTalk Qt client and now work perfectly.
+
+Notes
+~~~~~
+- Please update your dependencies to use the new ``pytalk`` package name and version 1.4.1 or later.
+- Review your existing code for any instances of the old library name and update them to ``pytalk``.
+
 :version:`1.4.0` - 2025-04-28
 ---------------------------------
 

@@ -75,5 +75,3 @@ License
 -------
 
 Pytalk is licensed under the MIT License. See the `LICENSE <https://github.com/BlindMaster24/pytalk/blob/master/LICENSE>`_ file for more information.
-
-`PyPI: pytalk <https://pypi.org/project/pytalk/>`_

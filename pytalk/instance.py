@@ -12,7 +12,7 @@ import os
 import time
 from typing import List, Optional, Union
 
-from ._utils import _waitForCmd, _waitForEvent, _do_after
+from ._utils import _do_after, _waitForCmd, _waitForEvent, percent_to_ref_volume, ref_volume_to_percent
 
 # from .audio import AudioBlock, MuxedAudioBlock, _AcquireUserAudioBlock, _ReleaseUserAudioBlock
 from .channel import Channel as TeamTalkChannel
@@ -255,66 +255,42 @@ class TeamTalkInstance(sdk.TeamTalk):
         return success
 
     def get_input_volume(self) -> int:
-        """Gets the current input gain level (100=SDK default).
+        """Gets the current input gain level as percentage (0-100).
 
-        Retrieves the raw SDK gain and scales it so the SDK default gain level
-        (SOUND_GAIN_DEFAULT) corresponds to 100.
+        Matches the TeamTalk Qt client's user volume scaling.
 
         Returns:
-            int: The volume level where 100 is the SDK default gain. Values
-                 above 100 represent gain higher than the SDK default. Returns
-                 0 if the SDK call fails.
+            int: The volume percentage (0-100). Returns 0 if the SDK call fails.
         """
         sdk_gain = sdk._GetSoundInputGainLevel(self._tt)
         if sdk_gain < 0:
             _log.warning(f"Could not get input gain for instance {self.server_info.host}, SDK returned {sdk_gain}")
             return 0
+        return ref_volume_to_percent(sdk_gain)
 
-        sdk_default = float(sdk.SoundLevel.SOUND_GAIN_DEFAULT)
-        sdk_max = float(sdk.SoundLevel.SOUND_GAIN_MAX)
+    def set_input_volume(self, percentage: int) -> bool:
+        """Sets the input gain level from a percentage (0-100).
 
-        if sdk_default == 0:
-            scaled_volume = round((sdk_gain / sdk_max) * 100.0) if sdk_max != 0 else 0
-            max_possible_scaled = 100
-        else:
-            scaled_volume = round((sdk_gain / sdk_default) * 100.0)
-            max_possible_scaled = round((sdk_max / sdk_default) * 100.0)
-
-        return max(0, min(int(scaled_volume), int(max_possible_scaled)))
-
-    def set_input_volume(self, volume: int) -> bool:
-        """Sets the input gain level (100=SDK default).
-
-        Scales the input volume (where 100 is the SDK default gain) to the
-        SDK's raw gain range [0, 32000] and applies it, clamping the value.
+        Matches the TeamTalk Qt client's user volume scaling.
 
         Args:
-            volume (int): The desired volume level, where 100 corresponds to
-                          the SDK default gain.
+            percentage (int): The desired volume percentage (0-100).
 
         Returns:
             bool: True on success, False otherwise.
 
         Raises:
-            ValueError: If volume is negative.
+            ValueError: If percentage is out of range (0-100).
         """
-        if volume < 0:
-            raise ValueError("Volume cannot be negative.")
+        if not 0 <= percentage <= 100:
+            raise ValueError("Percentage must be between 0 and 100")
 
-        sdk_default = float(sdk.SoundLevel.SOUND_GAIN_DEFAULT)
-        sdk_max = float(sdk.SoundLevel.SOUND_GAIN_MAX)
-        sdk_min = float(sdk.SoundLevel.SOUND_GAIN_MIN)
+        internal_volume = percent_to_ref_volume(float(percentage))
 
-        if sdk_default == 0:
-            sdk_gain_float = (volume / 100.0) * sdk_max
-        else:
-            sdk_gain_float = (volume / 100.0) * sdk_default
-
-        sdk_gain = int(round(sdk_gain_float))
-        sdk_gain = max(int(sdk_min), min(sdk_gain, int(sdk_max)))
-
-        _log.debug(f"Setting input volume for instance {self.server_info.host} to {volume} (SDK level: {sdk_gain})")
-        success = sdk._SetSoundInputGainLevel(self._tt, sdk_gain)
+        _log.debug(
+            f"Setting input volume for instance {self.server_info.host} to {percentage}% (internal: {internal_volume})"
+        )
+        success = sdk._SetSoundInputGainLevel(self._tt, internal_volume)
         if not success:
             _log.error(f"Failed to set input volume for instance {self.server_info.host}")
         return success

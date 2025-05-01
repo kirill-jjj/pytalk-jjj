@@ -1,6 +1,6 @@
+import math
 import time
 import threading
-
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 timestamp = lambda: int(round(time.time() * 1000))
@@ -84,6 +84,59 @@ def _get_tt_obj_attribute(obj, attr):
         pass
     # if we are still here we failed to get the attribute
     raise AttributeError(f"Could not find attribute {name} in {obj}")
+
+
+def percent_to_ref_volume(percent: float) -> int:
+    """Converts a percentage (0-100) to the internal TeamTalk volume value.
+
+    Matches the TeamTalk Qt client's user volume scaling.
+
+    Args:
+        percent (float): The volume percentage (0.0 to 100.0).
+
+    Returns:
+        int: The corresponding internal TeamTalk volume value, clamped to SDK limits.
+    """
+    if percent <= 0:
+        return sdk.SoundLevel.SOUND_VOLUME_MIN
+
+    percent = max(0.0, min(100.0, percent))
+
+    try:
+        internal_volume_float = 82.832 * math.exp(0.0508 * percent) - 50.0
+    except OverflowError:
+        return sdk.SoundLevel.SOUND_VOLUME_MAX
+
+    internal_volume = int(round(internal_volume_float))
+    return max(sdk.SoundLevel.SOUND_VOLUME_MIN, min(sdk.SoundLevel.SOUND_VOLUME_MAX, internal_volume))
+
+
+def ref_volume_to_percent(volume: int) -> int:
+    """Converts an internal TeamTalk volume value to a percentage (0-100).
+
+    Matches the TeamTalk Qt client's user volume scaling.
+
+    Args:
+        volume (int): The internal TeamTalk volume value.
+
+    Returns:
+        int: The corresponding volume percentage (0-100).
+    """
+    if volume <= sdk.SoundLevel.SOUND_VOLUME_MIN:
+        return 0
+
+    try:
+        internal_volume_float = float(volume)
+        safe_volume = max(internal_volume_float, float(sdk.SoundLevel.SOUND_VOLUME_MIN) - 49.9)
+        d = (safe_volume + 50.0) / 82.832
+        if d <= 0:
+            return 0
+        percentage = math.log(d) / 0.0508
+    except (ValueError, OverflowError):
+        return 0
+
+    rounded_percentage = int(round(percentage))
+    return max(0, min(100, rounded_percentage))
 
 
 def _set_tt_obj_attribute(obj, attr, value):
