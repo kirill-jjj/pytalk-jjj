@@ -11,7 +11,7 @@ To install Pytalk, simply run the following command:
 
 .. code-block::
 
-    pip install pytalk
+    pip install py-talk-ex
 
 Alternatively, you can download the source code from the GitHub repository and run the following command:
 
@@ -20,7 +20,7 @@ Alternatively, you can download the source code from the GitHub repository and r
     git clone https://github.com/BlindMaster24/pytalk.git
     cd pytalk
     uv build
-    pip install dist/py_talk-*.tar.gz
+    pip install dist/py_talk_ex-*.tar.gz
 
 
 Quick Start
