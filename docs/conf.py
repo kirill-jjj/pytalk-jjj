@@ -61,7 +61,7 @@ autodoc_member_order = 'bysource'
 
 extlinks = {
     'issue': ('https://github.com/BlindMaster24/pytalk/issues/%s', '#%s'),
-    'version': ('https://pypi.org/project/pytalk/%s', 'v%s'),
+    'version': ('https://pypi.org/project/py-talk-ex/%s', 'v%s'),
 }
 
 # Links used for cross-referencing stuff in other documentation
