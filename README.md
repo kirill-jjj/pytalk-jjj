@@ -10,7 +10,7 @@ Python 3.8 or higher is required
 #### From PyPI
 
 ```bash
-pip install py-talk
+pip install py-talk-ex
 ```
 
 #### From source
@@ -27,11 +27,11 @@ uv sync
 ```python
 import teamtalk
 
-bot = teamtalk.TeamTalkBot()
+bot = pytalk.TeamTalkBot()
 
 @bot.event
 async def on_ready():
-    test_server = teamtalk.TeamTalkServerInfo("localhost", 10335, 10335, "user", "pass")
+    test_server = pytalk.TeamTalkServerInfo("localhost", 10335, 10335, "user", "pass")
     await bot.add_server(test_server)
 
 @bot.event

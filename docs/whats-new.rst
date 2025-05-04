@@ -34,7 +34,7 @@ Breaking Changes & Important Notices
 - **Project Renamed:** The library is now officially ``pytalk``. This project is independent and not related to ``teamtalk.py``.
   **Action Required:** You **must** update your import statements (e.g., change ``import teamtalk`` to ``import pytalk``) and any other code references. Please review the updated documentation for new conventions.
 - **Separate Repository:** Pytalk has been moved to its own repository.
-- **PyPI Availability:** Versions prior to 1.4.4 under the old name will **no longer be available** for installation from PyPI. You must use version 1.4.1 or newer of ``pytalk``.
+- **PyPI Availability:** Versions prior to 1.4.4 under the old name will **no longer be available** for installation from PyPI. You must use version 1.4.4 or newer of ``pytalk``.
 - **Changelog History:** While older versions are unavailable on PyPI, previous changelog entries will be maintained within the new repository for historical reference.
 
 Fixes / Improvements
