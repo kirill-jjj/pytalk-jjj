@@ -32,23 +32,19 @@ To quickly get started with Pytalk, you can use the following code snippet:
 
     import pytalk
 
-    # Create a new TeamTalk bot
-    bot = teamtalk.Bot()
+bot = pytalk.TeamTalkBot()
 
-    # listen to some events
-    @bot.event
-    def on_ready():
-        print("Bot is ready!")
+@bot.event
+async def on_ready():
+    test_server = pytalk.TeamTalkServerInfo("localhost", 10335, 10335, "user", "pass")
+    await bot.add_server(test_server)
 
-    @bot.event
-    def on_message(message):
-        print(f"Received message: {message}")
+@bot.event
+async def on_message(message):
+    if message.content.lower() == "ping":
+        message.reply("pong")
 
-    # then add our servers
-    bot.add_server("localhost", 10333, 10333, "serveradmin", "password")
-
-    # and finally, connect to the servers and start listening for events
-    bot.run()
+bot.run()
 
 
 Useful Links
