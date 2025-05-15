@@ -630,25 +630,43 @@ class TeamTalkInstance(sdk.TeamTalk):
         return TeamTalkUser(self, user_id)
 
     # user account stuff
-    def create_user_account(self, username: str, password: str, usertype: UserType) -> TeamTalkUserAccount:  # noqa
+    def create_user_account(
+        self, username: str, password: str, usertype: UserType, user_rights: Optional[int] = None, note: str = ""
+    ) -> bool:
         """Creates a user account on the server.
 
         Args:
-            username: The username of the user account.
-            password: The password of the user account.
-            usertype: The type of the user account.
+            username (str): The username for the new account.
+            password (str): The password for the new account.
+            usertype (UserType): The type of user account (e.g.,
+                `pytalk.UserType.DEFAULT` or `pytalk.UserType.ADMIN`).
+            user_rights (Optional[int], optional): Specific rights to assign,
+                as a bitmask of `pytalk.Permission` values. If `None`
+                (default), `uUserRights` is sent as `0`, and server
+                defaults based on `usertype` will apply.
+            note (str, optional): An optional note for the user account.
+                If this argument is not provided when calling the
+                function, it defaults to an empty string, which means
+                no note will be set.
 
         Returns:
-            TeamTalkUserAccount: The user account.
+            bool: True if the command to create the account was
+                successfully dispatched.
 
         Raises:
-            ValueError: If the username or password is invalid.
-            PermissionError: If the bot does not have permission to create a user account or if the bot is not logged in.
+            ValueError: If username or password is invalid.
+            PermissionError: If the bot lacks permission to create accounts
+                or is not logged in.
         """
         account = sdk.UserAccount()
-        account.szUsername = username
-        account.szPassword = password
+        account.szUsername = sdk.ttstr(username)
+        account.szPassword = sdk.ttstr(password)
         account.uUserType = usertype
+        account.szNote = sdk.ttstr(note)
+
+        if user_rights is not None:
+            account.uUserRights = user_rights
+
         result = sdk._DoNewUserAccount(self._tt, account)
         if result == -1:
             raise ValueError("Username or password is invalid")
@@ -1048,6 +1066,14 @@ class TeamTalkInstance(sdk.TeamTalk):
         # other "my" events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_MYSELF_KICKED:
             self.bot.dispatch("my_kicked_from_channel", TeamTalkChannel(self, msg.nSource))
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT_NEW:
+            account = TeamTalkUserAccount(self, msg.useraccount)
+            self.bot.dispatch("user_account_new", account)
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT_REMOVE:
+            account = TeamTalkUserAccount(self, msg.useraccount)
+            self.bot.dispatch("user_account_remove", account)
             return
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:
             account = TeamTalkUserAccount(self, msg.useraccount)

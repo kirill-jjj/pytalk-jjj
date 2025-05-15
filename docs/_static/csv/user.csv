@@ -4,3 +4,5 @@ on_user_logout	pytalk.User	Called when a user logs out from a server that the bo
 on_user_update	pytalk.User	Called when a user gets updated
 on_user_join	pytalk.User, pytalk.Channel	Called when a pytalk.User joins a pytalk.Channel
 on_user_left	pytalk.User, pytalk.Channel	Called when a pytalk.User leaves a pytalk.Channel
+on_user_account_new	pytalk.UserAccount	Called when a new user account is created on the server.
+on_user_account_remove	pytalk.UserAccount	Called when a user account is deleted from the server.
