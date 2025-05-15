@@ -30,6 +30,7 @@ Fixed
 Added
 ~~~~~
 - Reinstated audio receiving events: `on_user_audio` and `on_muxed_audio` are now available again. (Originally planned for 1.4.5)
+- Added new events: `on_user_account_new` (called when a new user account is created on the server) and `on_user_account_remove` (called when a user account is deleted from the server).
 - Enhanced `pytalk.TeamTalkInstance.create_user_account` method:
     - Added `user_rights` parameter to allow specifying user permissions (using `pytalk.Permission` values) upon user account creation.
     - Added `note` parameter to allow setting a note upon user account creation.
