@@ -24,20 +24,32 @@ Fixed
 
 - Fixed documentation not being generated correctly.
 
-:version:`1.4.5` - Unreleased
+:version:`1.5.0` - 2025-05-15
 ---------------------------------
 
 Added
 ~~~~~
-- Reinstated audio receiving events: `on_user_audio` and `on_muxed_audio` are now available again.
+- Reinstated audio receiving events: `on_user_audio` and `on_muxed_audio` are now available again. (Originally planned for 1.4.5)
+- Enhanced `pytalk.TeamTalkInstance.create_user_account` method:
+    - Added `user_rights` parameter to allow specifying user permissions (using `pytalk.Permission` values) upon user account creation.
+    - Added `note` parameter to allow setting a note upon user account creation.
 
 Changed
 ~~~~~~~
-- Updated the default client name used if no `client_name` is specified upon `TeamTalkBot` initialization.
+- Corrected the return type annotation for `pytalk.TeamTalkInstance.create_user_account` from `TeamTalkUserAccount` to `bool` to accurately reflect its actual return value.
+
+Fixed
+~~~~~
+- Resolved an issue where documentation was not being generated correctly for some elements.
+- Fixed Flake8 `DAR203` error related to return type mismatch in `pytalk.TeamTalkInstance.create_user_account` docstring.
+
+Improved
+~~~~~~~~
+- Updated and significantly clarified docstrings for `pytalk.TeamTalkInstance.create_user_account`, including detailed explanations of new parameters and default behaviors.
 
 Notes
 ~~~~~
-- The core logic for `on_user_audio` and `on_muxed_audio` has not been altered in this version. If your bot encounters issues or crashes when using these re-enabled audio events, please report them via a GitHub issue. While they may function correctly, thorough testing in your environment is recommended.
+- The core logic for `on_user_audio` and `on_muxed_audio` has not been altered in this version. If your bot encounters issues or crashes when using these re-enabled audio events, please report them via a GitHub issue. While they may function correctly, thorough testing in your environment is recommended. (Note originally from 1.4.5)
 
 :version:`1.4.1` - 2025-05-01
 ---------------------------------
