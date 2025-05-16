@@ -24,6 +24,19 @@ Fixed
 
 - Fixed documentation not being generated correctly.
 
+:version:`1.5.1` - 2025-05-16
+---------------------------------
+
+Fixed
+~~~~~
+- Improved stability of audio event processing in ``pytalk.TeamTalkInstance`` by implementing an SDK lock (`_audio_sdk_lock`) to serialize access to critical TeamTalk SDK audio functions. This addresses potential segmentation faults and race conditions during high-frequency audio events.
+- Enhanced resource management for audio blocks by ensuring SDK pointers are correctly acquired, data is copied, and pointers are released reliably, even in error scenarios within the event processing loop.
+- Refined the internal logic for handling ``CLIENTEVENT_USER_STATECHANGE`` to correctly enable/disable audio block events based on user voice transmission status.
+
+Improved
+~~~~~~~~
+- Restructured parts of the internal ``_process_events`` method in ``pytalk.TeamTalkInstance`` for better clarity and logical flow of event handling.
+
 :version:`1.5.0` - 2025-05-15
 ---------------------------------
 

@@ -9,6 +9,7 @@ import asyncio
 import ctypes
 import logging
 import os
+import threading
 import time
 from typing import List, Optional, Union
 
@@ -61,6 +62,7 @@ class TeamTalkInstance(sdk.TeamTalk):
         self.user_accounts = []
         self.banned_users = []
         self._current_input_device_id: Optional[int] = -1
+        self._audio_sdk_lock = threading.Lock()
 
     def connect(self) -> bool:
         """Connects to the server. This doesn't return until the connection is successful or fails.
@@ -973,49 +975,92 @@ class TeamTalkInstance(sdk.TeamTalk):
         """Processes events from the server. This is automatically called by pytalk.Bot."""
         msg = self.super.getMessage(100)
         event = msg.nClientEvent
-        if event == sdk.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
-            if msg.user.uUserState == 1:
-                sdk._EnableAudioBlockEventEx(self._tt, msg.user.nUserID, sdk.StreamType.STREAMTYPE_VOICE, None, True)
-            return
-            if msg.user.uUserState == 0:
-                sdk._EnableAudioBlockEventEx(self._tt, msg.user.nUserID, sdk.StreamType.STREAMTYPE_VOICE, None, False)
-            return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
-            if msg.user.nUserID == self.super.getMyUserID():
-                sdk._EnableAudioBlockEventEx(self._tt, sdk.TT_MUXED_USERID, sdk.StreamType.STREAMTYPE_VOICE, None, True)
-            user = TeamTalkUser(self, msg.user)
-            self.bot.dispatch("user_join", user, user.channel)
+
+        # Ignore Events
+        if event == sdk.ClientEvent.CLIENTEVENT_NONE:
             return
         if event == sdk.ClientEvent.CLIENTEVENT_USER_FIRSTVOICESTREAMPACKET:
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
-            if msg.user.nUserID == self.super.getMyUserID():
-                sdk._EnableAudioBlockEventEx(self._tt, sdk.TT_MUXED_USERID, sdk.StreamType.STREAMTYPE_VOICE, None, False)
-            user = TeamTalkUser(self, msg.user)
-            self.bot.dispatch("user_left", user, TeamTalkChannel(self, msg.nSource))
+
+        # My Events
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_MYSELF_KICKED:
+            self.bot.dispatch("my_kicked_from_channel", TeamTalkChannel(self, msg.nSource))
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_NONE:
+        if event == sdk.ClientEvent.CLIENTEVENT_CON_LOST:
+            self.connected = False
+            self.logged_in = False
+            self.bot.dispatch("my_connection_lost", self.server)
+            return
+
+        # User Events
+        if event == sdk.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
+            user_id = msg.user.nUserID
+            current_user_state = msg.user.uUserState
+            if current_user_state & sdk.UserState.USERSTATE_VOICE:
+                sdk._EnableAudioBlockEventEx(self._tt, user_id, sdk.StreamType.STREAMTYPE_VOICE, None, True)
+            else:
+                sdk._EnableAudioBlockEventEx(self._tt, user_id, sdk.StreamType.STREAMTYPE_VOICE, None, False)
             return
         if event == sdk.ClientEvent.CLIENTEVENT_USER_AUDIOBLOCK:
-            # this one is a little special
-            streamtype = sdk.StreamType(msg.nStreamType)
-            ab = _AcquireUserAudioBlock(self._tt, streamtype, msg.nSource)
-            # put the ab which is a pointer into the sdk.AudioBlock
-            ab2 = sdk.AudioBlock()
+            sdk_audio_block_ptr = None
+            py_sdk_audio_block_struct_instance = None
+            source_id = msg.nSource
+            with self._audio_sdk_lock:
+                stream_type_enum = sdk.StreamType(msg.nStreamType)
+                sdk_audio_block_ptr = _AcquireUserAudioBlock(self._tt, stream_type_enum, source_id)
+                if not sdk_audio_block_ptr:
+                    return
+                py_sdk_audio_block_struct_instance = sdk.AudioBlock()
+                try:
+                    ctypes.memmove(
+                        ctypes.addressof(py_sdk_audio_block_struct_instance),
+                        sdk_audio_block_ptr,
+                        ctypes.sizeof(py_sdk_audio_block_struct_instance),
+                    )
+                except OSError:
+                    _ReleaseUserAudioBlock(self._tt, sdk_audio_block_ptr)
+                    return
+                _ReleaseUserAudioBlock(self._tt, sdk_audio_block_ptr)
+            py_audio_block_wrapper = None
             try:
-                ctypes.memmove(ctypes.addressof(ab2), ab, ctypes.sizeof(ab2))
-            except OSError:
-                return
-            if msg.nSource == sdk.TT_MUXED_USERID:
-                real_ab = MuxedAudioBlock(ab2)
-                self.bot.dispatch("muxed_audio", real_ab)
-            else:
-                user = TeamTalkUser(self, msg.nSource)
-                real_ab = AudioBlock(user, ab2)
-                self.bot.dispatch("user_audio", real_ab)
-            # release
-            _ReleaseUserAudioBlock(self._tt, ab)
+                if source_id == sdk.TT_MUXED_USERID:
+                    py_audio_block_wrapper = MuxedAudioBlock(py_sdk_audio_block_struct_instance)
+                    self.bot.dispatch("muxed_audio", py_audio_block_wrapper)
+                else:
+                    user = TeamTalkUser(self, source_id)
+                    py_audio_block_wrapper = AudioBlock(user, py_sdk_audio_block_struct_instance)
+                    self.bot.dispatch("user_audio", py_audio_block_wrapper)
+            except Exception as e:
+                error_message = (
+                    f"CLIENTEVENT_USER_AUDIOBLOCK: Error during Python wrapper creation or dispatch"
+                    f" for source_id {source_id}. Error: {e}"
+                )
+                _log.exception(error_message)
             return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
+            user_joined = TeamTalkUser(self, msg.user)
+            if user_joined.id == self.super.getMyUserID():
+                sdk._EnableAudioBlockEventEx(self._tt, sdk.TT_MUXED_USERID, sdk.StreamType.STREAMTYPE_VOICE, None, True)
+            self.bot.dispatch("user_join", user_joined, user_joined.channel)
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
+            user_left = TeamTalkUser(self, msg.user)
+            channel_left_from = TeamTalkChannel(self, msg.nSource)
+            if user_left.id == self.super.getMyUserID():
+                sdk._EnableAudioBlockEventEx(self._tt, sdk.TT_MUXED_USERID, sdk.StreamType.STREAMTYPE_VOICE, None, False)
+            self.bot.dispatch("user_left", user_left, channel_left_from)
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
+            self.bot.dispatch("user_login", TeamTalkUser(self, msg.user))
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
+            self.bot.dispatch("user_logout", TeamTalkUser(self, msg.user))
+            return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
+            self.bot.dispatch("user_update", TeamTalkUser(self, msg.user))
+            return
+
+        # Message Event
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             message = None
             if msg.textmessage.nMsgType == sdk.TextMsgType.MSGTYPE_USER:
@@ -1028,18 +1073,9 @@ class TeamTalkInstance(sdk.TeamTalk):
                 message = CustomMessage(self, msg.textmessage)
             if message:
                 self.bot.dispatch("message", message)
-                return
-            # user events
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
-            self.bot.dispatch("user_login", TeamTalkUser(self, msg.user))
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
-            self.bot.dispatch("user_logout", TeamTalkUser(self, msg.user))
-            return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
-            self.bot.dispatch("user_update", TeamTalkUser(self, msg.user))
-            return
-        # channel events
+
+        # Channel Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_CHANNEL_NEW:
             self.bot.dispatch("channel_new", TeamTalkChannel(self, msg.channel))
             return
@@ -1049,24 +1085,24 @@ class TeamTalkInstance(sdk.TeamTalk):
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_CHANNEL_REMOVE:
             self.bot.dispatch("channel_delete", TeamTalkChannel(self, msg.channel))
             return
-        # server events
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_SERVER_UPDATE:
-            self.bot.dispatch("server_update", self.server)
-            return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS:
-            self.bot.dispatch("server_statistics", TeamTalkServerStatistics(self, msg.serverstatistics))
-            return
-        # FILE EVENTS
+
+        # File Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_FILE_NEW:
             self.bot.dispatch("file_new", RemoteFile(self, msg.remotefile))
             return
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_FILE_REMOVE:
             self.bot.dispatch("file_delete", RemoteFile(self, msg.remotefile))
             return
-        # other "my" events
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_MYSELF_KICKED:
-            self.bot.dispatch("my_kicked_from_channel", TeamTalkChannel(self, msg.nSource))
+
+        # Server Events
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_SERVER_UPDATE:
+            self.bot.dispatch("server_update", self.server)
             return
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS:
+            self.bot.dispatch("server_statistics", TeamTalkServerStatistics(self, msg.serverstatistics))
+            return
+
+        # User Account Management Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT_NEW:
             account = TeamTalkUserAccount(self, msg.useraccount)
             self.bot.dispatch("user_account_new", account)
@@ -1075,31 +1111,25 @@ class TeamTalkInstance(sdk.TeamTalk):
             account = TeamTalkUserAccount(self, msg.useraccount)
             self.bot.dispatch("user_account_remove", account)
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:  # Internal
             account = TeamTalkUserAccount(self, msg.useraccount)
             self.user_accounts.append(account)
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:
-            # cast our msg.useraccount to a banned user
+        if event == sdk.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:  # Internal
             banned_user_struct = sdk.BannedUser()
             ctypes.memmove(ctypes.byref(banned_user_struct), ctypes.byref(msg.useraccount), ctypes.sizeof(sdk.BannedUser))
             banned_user = TeamTalkBannedUserAccount(self, banned_user_struct)
             self.banned_users.append(banned_user)
             return
-        if event == sdk.ClientEvent.CLIENTEVENT_CON_LOST:
-            self.bot.dispatch("my_connection_lost", self)
-            return
 
-        else:
-            # if we haven't handled the event, log it
-            # except if it's CLIENTEVENT_CMD_PROCESSING or CLIENTEVENT_CMD_ERROR or CLIENTEVENT_CMD_SUCCESS
-            if event not in (
-                sdk.ClientEvent.CLIENTEVENT_CMD_PROCESSING,
-                sdk.ClientEvent.CLIENTEVENT_CMD_ERROR,
-                sdk.ClientEvent.CLIENTEVENT_CMD_SUCCESS,
-                sdk.ClientEvent.CLIENTEVENT_AUDIOINPUT,
-            ):
-                _log.warning(f"Unhandled event: {event}")
+        # Other Unhandled Events
+        if event not in (
+            sdk.ClientEvent.CLIENTEVENT_CMD_PROCESSING,
+            sdk.ClientEvent.CLIENTEVENT_CMD_ERROR,
+            sdk.ClientEvent.CLIENTEVENT_CMD_SUCCESS,
+            sdk.ClientEvent.CLIENTEVENT_AUDIOINPUT,
+        ):
+            _log.warning(f"Unhandled event: {event}")
 
     def _get_channel_info(self, channel_id: int):
         _channel = self.getChannel(channel_id)
