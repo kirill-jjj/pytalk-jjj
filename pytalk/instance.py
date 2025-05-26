@@ -13,13 +13,24 @@ import threading
 import time
 from typing import List, Optional, Union
 
-from ._utils import _do_after, _waitForCmd, _waitForEvent, percent_to_ref_volume, ref_volume_to_percent
-
-from .audio import AudioBlock, MuxedAudioBlock, _AcquireUserAudioBlock, _ReleaseUserAudioBlock
+from ._utils import (
+    _do_after,
+    _waitForCmd,
+    _waitForEvent,
+    percent_to_ref_volume,
+    ref_volume_to_percent,
+)
+from .audio import (
+    AudioBlock,
+    MuxedAudioBlock,
+    _AcquireUserAudioBlock,
+    _ReleaseUserAudioBlock,
+)
 from .channel import Channel as TeamTalkChannel
 from .channel import ChannelType
+from .codec import CodecType
 from .device import SoundDevice
-from .enums import TeamTalkServerInfo, UserStatusMode, UserType
+from .enums import TeamTalkServerInfo, Status, UserType
 from .exceptions import PermissionError
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 from .message import BroadcastMessage, ChannelMessage, CustomMessage, DirectMessage
@@ -133,14 +144,32 @@ class TeamTalkInstance(sdk.TeamTalk):
         """
         self.super.doChangeNickname(sdk.ttstr(nickname))
 
-    def change_status(self, status_mode: UserStatusMode, status_message: str):
-        """Changes the status of the bot.
+    def change_status(self, status_flags: int, status_message: str) -> None:
+        """Changes the status of the bot using combined status flags.
+
+        This method allows setting the user's online mode (online, away, question)
+        and gender simultaneously, while preserving other active status flags
+        (like video/desktop transmission).
 
         Args:
-            status_mode: The status mode.
-            status_message: The status message.
+            status_flags (int): A combined integer value representing the desired
+                                  status mode and gender. This can be constructed
+                                  using the `pytalk.enums.Status` helper class
+                                  (e.g., `Status.online.female`).
+            status_message (str): The status message to display.
         """
-        self.super.doChangeStatus(status_mode, sdk.ttstr(status_message))
+        current_user_obj = self.get_user(self.get_my_user_id())
+        current_full_status_mode = current_user_obj.status_mode
+
+        new_mode_bits = status_flags & Status._MODE_MASK
+        new_gender_bits = status_flags & Status._GENDER_MASK
+
+        other_flags_mask = ~(Status._MODE_MASK | Status._GENDER_MASK)
+        preserved_other_flags = current_full_status_mode & other_flags_mask
+
+        final_status = new_mode_bits | new_gender_bits | preserved_other_flags
+
+        self.super.doChangeStatus(final_status, sdk.ttstr(status_message))
 
     def get_sound_devices(self) -> List[SoundDevice]:
         """Gets the list of available TeamTalk sound devices, marking the default input.
@@ -296,6 +325,35 @@ class TeamTalkInstance(sdk.TeamTalk):
         if not success:
             _log.error(f"Failed to set input volume for instance {self.server_info.host}")
         return success
+
+    # Media File Streaming Functions
+    def start_streaming_media_file_to_channel(self, path: str, video_codec: Optional[sdk.VideoCodec] = None) -> bool:
+        """Starts streaming a media file to the channel.
+
+        If no video codec is specified, it defaults to WebM VP8.
+
+        Args:
+            path (str): The path to the media file.
+            video_codec (Optional[sdk.VideoCodec]): An optional video codec object.
+
+        Returns:
+            bool: True if the streaming started successfully, False otherwise.
+        """
+        if video_codec is None:
+            codec_to_use = sdk.VideoCodec()
+            codec_to_use.nCodec = CodecType.WEBM_VP8
+        else:
+            codec_to_use = video_codec
+
+        return self.super.startStreamingMediaFileToChannel(sdk.ttstr(path), ctypes.byref(codec_to_use))
+
+    def stop_streaming_media_file_to_channel(self) -> bool:
+        """Stops the current media file streaming to the channel.
+
+        Returns:
+            bool: True if the streaming stopped successfully, False otherwise.
+        """
+        return self.super.stopStreamingMediaFileToChannel()
 
     # permission stuff
     def has_permission(self, permission: Permission) -> bool:
