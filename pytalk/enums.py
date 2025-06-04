@@ -106,8 +106,8 @@ class TeamTalkServerInfo:
         return not self.__eq__(other)
 
 
-class _UserStatusMode:
-    """Internal representation of status modes (mutually exclusive)."""
+class UserStatusMode:
+    """Represents user status modes (mutually exclusive)."""
 
     ONLINE = 0
     """The user is online."""
@@ -146,6 +146,12 @@ class Status:
 
     This class should not be instantiated directly.
     """
+
+    def __init__(self) -> None:
+        raise TypeError(
+            "Status class is not meant to be instantiated directly. "
+            "Use class properties like Status.online, Status.away, or Status.question instead."
+        )
 
     class _StatusBuilder:
         """Internal builder for combining status mode and gender."""
@@ -191,32 +197,35 @@ class Status:
     _GENDER_MASK = _Gender.FEMALE | _Gender.NEUTRAL
     """A bitmask for extracting the gender bits from a combined status integer."""
 
+    @classmethod
     @property
-    def online(self) -> _StatusBuilder:
+    def online(cls) -> _StatusBuilder:
         """Sets the user status to 'online'.
 
         Returns:
             _StatusBuilder: An internal builder to further specify gender.
         """
-        return self._StatusBuilder(_UserStatusMode.ONLINE)
+        return cls._StatusBuilder(UserStatusMode.ONLINE)
 
+    @classmethod
     @property
-    def away(self) -> _StatusBuilder:
+    def away(cls) -> _StatusBuilder:
         """Sets the user status to 'away'.
 
         Returns:
             _StatusBuilder: An internal builder to further specify gender.
         """
-        return self._StatusBuilder(_UserStatusMode.AWAY)
+        return cls._StatusBuilder(UserStatusMode.AWAY)
 
+    @classmethod
     @property
-    def question(self) -> _StatusBuilder:
+    def question(cls) -> _StatusBuilder:
         """Sets the user status to 'question'.
 
         Returns:
             _StatusBuilder: An internal builder to further specify gender.
         """
-        return self._StatusBuilder(_UserStatusMode.QUESTION)
+        return cls._StatusBuilder(UserStatusMode.QUESTION)
 
 
 class UserType:
