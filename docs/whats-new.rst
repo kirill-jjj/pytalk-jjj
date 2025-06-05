@@ -39,8 +39,18 @@ Improved
 ~~~~~~~~
 - The `pytalk.TeamTalkInstance.change_status` method now accepts a combined status integer, intelligently preserving other non-mode/gender related status flags (like video or desktop sharing) when updating.
 
+Changed
+~~~~~~~
+- In `TeamTalkInstance.login()`, the automatic channel join based on `server_info.join_channel_id`
+  will now only attempt to join a channel if `join_channel_id` is strictly positive (>0).
+  Previously, a value of 0 or negative would result in joining the root channel. Now, such
+  values will result in no channel being joined automatically.
+
 Fixed
 ~~~~~
+- In `Server.join_channel()`, attempting to join a channel by path with an empty or
+  whitespace-only string now correctly results in no action (and returns `False`).
+  Previously, this would lead to an attempt to join the root channel.
 - Fixed several linter issues.
 
 :version:`1.5.1` - 2025-05-16

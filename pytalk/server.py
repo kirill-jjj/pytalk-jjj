@@ -116,6 +116,8 @@ class Server:
         """
         _channel = None
         if isinstance(channel, str):
+            if not channel.strip():
+                return False
             if not channel.endswith("/"):
                 channel += "/"
             _channel = self.teamtalk_instance.get_channel_from_path(channel)
