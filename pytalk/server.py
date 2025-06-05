@@ -250,7 +250,7 @@ class Server:
         if name in dir(self):
             return self.__dict__[name]
         else:
-            return _get_tt_obj_attribute(self._user, name)
+            return getattr(self.info, name)
 
 
 class _ServerPropertiesMeta(type):
