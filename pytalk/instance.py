@@ -158,7 +158,7 @@ class TeamTalkInstance(sdk.TeamTalk):
                                   (e.g., `Status.online.female`).
             status_message (str): The status message to display.
         """
-        current_user_obj = self.get_user(self.get_my_user_id())
+        current_user_obj = self.get_user(self.super.getMyUserID())
         current_full_status_mode = current_user_obj.status_mode
 
         new_mode_bits = status_flags & Status._MODE_MASK
