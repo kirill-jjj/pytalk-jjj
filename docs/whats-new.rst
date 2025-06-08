@@ -16,15 +16,29 @@ This document holds a human-readable list of changes between releases.
 
     For more information on SemVer, please visit http://semver.org/.
 
-:version:`2.0.0` - Unreleased
+:version:`1.6.1` - Unreleased
 ---------------------------------
+
+Added
+~~~~~
+- Automatic reconnection with exponential backoff for initial connection failures (`CLIENTEVENT_CON_FAILED`) in `TeamTalkBot.add_server()`.
+- Automatic reconnection with exponential backoff on kick (`CLIENTEVENT_CMD_MYSELF_KICKED`), controlled by `reconnect` flag in `TeamTalkBot.add_server()`.
+- `backoff_config` parameter (dict) in `TeamTalkBot.add_server()` for per-server customization of backoff behavior (`base`, `exponent`, `max_value`, `max_tries`).
+- `pytalk.backoff.Backoff` class for managing exponential backoff logic with jitter.
+- `TeamTalkInstance.initial_connect_loop()` method for initial connect & login sequence with retries.
+- `TeamTalkInstance.force_reconnect()` method for manual triggering of a full reconnection sequence.
+
+Improved
+~~~~~~~~
+- Reconnection and retry logic now uses exponential backoff with jitter by default to enhance server stability by desynchronizing mass client reconnections.
+- Synchronous SDK calls (`TeamTalkInstance.connect()`, `TeamTalkInstance.login()`) now run in a thread pool executor during connection loops to prevent blocking asyncio event loop.
 
 Fixed
 ~~~~~
+- `TeamTalkInstance.connected` and `TeamTalkInstance.logged_in` flags are correctly updated to `False` on `CLIENTEVENT_CMD_MYSELF_KICKED` before reconnection attempts.
+- `Backoff` state is reset only after a complete and successful connection and login sequence in `TeamTalkInstance`.
 
-- Fixed documentation not being generated correctly.
-
-:version:`1.6.0` - Unreleased
+:version:`1.6.0` - 2025-06-05
 ---------------------------------
 
 Added

@@ -26,6 +26,7 @@ from .audio import (
     _AcquireUserAudioBlock,
     _ReleaseUserAudioBlock,
 )
+from .backoff import Backoff
 from .channel import Channel as TeamTalkChannel
 from .channel import ChannelType
 from .codec import CodecType
@@ -50,12 +51,19 @@ _log = logging.getLogger(__name__)
 class TeamTalkInstance(sdk.TeamTalk):
     """Represents a TeamTalk5 instance."""
 
-    def __init__(self, bot, server_info: TeamTalkServerInfo) -> None:
+    def __init__(
+        self, bot, server_info: TeamTalkServerInfo, reconnect: bool = True, backoff_config: Optional[dict] = None
+    ) -> None:
         """Initializes a pytalk.TeamTalkInstance instance.
 
         Args:
             bot: The pytalk.Bot instance.
             server_info: The server info for the server we wish to connect to.
+            reconnect (bool): Whether to automatically reconnect to the server if the connection is lost. Defaults to True.
+            backoff_config (Optional[dict]): Configuration for the exponential backoff.
+                Accepts keys like `base`, `exponent`, `max_value`, `max_tries`.
+                These settings govern the retry behavior for both the initial connection sequence
+                and for reconnections after a connection loss. Defaults to `None` (using default Backoff settings).
         """
         # put the super class in a variable so we can call it later
         self.super = super()
@@ -74,9 +82,16 @@ class TeamTalkInstance(sdk.TeamTalk):
         self.banned_users = []
         self._current_input_device_id: Optional[int] = -1
         self._audio_sdk_lock = threading.Lock()
+        self.reconnect_enabled = reconnect
+        if backoff_config:
+            self._backoff = Backoff(**backoff_config)
+        else:
+            self._backoff = Backoff()
 
     def connect(self) -> bool:
-        """Connects to the server. This doesn't return until the connection is successful or fails.
+        """Makes a single synchronous attempt to connect to the server.
+
+        Waits for a success or failure event from the SDK for this attempt.
 
         Returns:
             bool: True if the connection was successful, False otherwise.
@@ -97,7 +112,9 @@ class TeamTalkInstance(sdk.TeamTalk):
         return True
 
     def login(self, join_channel_on_login: bool = True) -> bool:
-        """Logs in to the server. This doesn't return until the login is successful or fails.
+        """Makes a single synchronous attempt to log in to the server.
+
+        Waits for a success or failure event from the SDK for this attempt.
 
         Args:
             join_channel_on_login: Whether to join the channel on login or not.
@@ -120,7 +137,7 @@ class TeamTalkInstance(sdk.TeamTalk):
         #        self.super.initSoundOutputDevice(1978)
         if join_channel_on_login:
             channel_id_to_join = self.server_info.join_channel_id
-            if channel_id_to_join > 0: # Only join if channel_id is strictly positive
+            if channel_id_to_join > 0:  # Only join if channel_id is strictly positive
                 self.join_channel_by_id(channel_id_to_join)
             # If channel_id_to_join is 0 or negative, nothing happens.
         self.init_time = time.time()
@@ -135,6 +152,37 @@ class TeamTalkInstance(sdk.TeamTalk):
         """Disconnects from the server."""
         self.super.disconnect()
         self.connected = False
+
+    async def force_reconnect(self) -> bool:
+        """Manually forces a new attempt to connect and log in to the server.
+
+        This method resets the backoff counter and then initiates the
+        standard initial connection and login loop (`initial_connect_loop`).
+        Useful if the instance has previously stopped trying to reconnect
+        due to exhausting `max_tries` in its backoff configuration, or if
+        a manual reconnection attempt is desired for other reasons.
+
+        Note: If the instance is already connected and logged in, this
+        will likely cause a disconnection before attempting to reconnect.
+        Consider checking `self.connected` and `self.logged_in` before calling
+        if a disconnect is not desired.
+
+        Returns:
+            bool: True if the reconnection and login were successful, False otherwise.
+        """
+        _log.info(f"Forcing reconnect attempt to {self.server_info.host}...")
+        # Explicitly disconnect if currently connected to ensure a clean state,
+        # as initial_connect_loop assumes it's starting fresh or from a disconnected state.
+        if self.connected:
+            _log.debug(f"Force_reconnect: Instance to {self.server_info.host} is currently connected. Disconnecting first.")
+            # Run synchronous disconnect in executor to avoid blocking
+            await self.bot.loop.run_in_executor(None, self.disconnect)
+            # Ensure flags are set correctly after disconnect
+            self.connected = False
+            self.logged_in = False
+
+        # initial_connect_loop already calls self._backoff.reset() at its beginning.
+        return await self.initial_connect_loop()
 
     def change_nickname(self, nickname: str):
         """Changes the nickname of the bot.
@@ -1042,12 +1090,35 @@ class TeamTalkInstance(sdk.TeamTalk):
 
         # My Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_MYSELF_KICKED:
+            # Set state to disconnected FIRST
+            self.connected = False
+            self.logged_in = False
+
             self.bot.dispatch("my_kicked_from_channel", TeamTalkChannel(self, msg.nSource))
+
+            if self.reconnect_enabled:
+                delay = self._backoff.delay()
+                if delay is not None:
+                    _log.info(
+                        f"Kicked from {self.server_info.host}. Attempting to reconnect in {delay:.2f} seconds..."
+                    )  # This existing log is fine
+                    asyncio.create_task(self._reconnect(delay))
+                else:
+                    _log.error(f"Max retries exceeded for {self.server_info.host} after being kicked. Stopping attempts.")
             return
         if event == sdk.ClientEvent.CLIENTEVENT_CON_LOST:
             self.connected = False
             self.logged_in = False
             self.bot.dispatch("my_connection_lost", self.server)
+            if self.reconnect_enabled:
+                delay = self._backoff.delay()
+                if delay is not None:
+                    _log.info(
+                        f"Connection lost to {self.server_info.host}. Attempting to reconnect in {delay:.2f} seconds..."
+                    )
+                    asyncio.create_task(self._reconnect(delay))
+                else:
+                    _log.error(f"Max retries exceeded for {self.server_info.host} after connection loss. Stopping attempts.")
             return
 
         # User Events
@@ -1188,6 +1259,82 @@ class TeamTalkInstance(sdk.TeamTalk):
             sdk.ClientEvent.CLIENTEVENT_AUDIOINPUT,
         ):
             _log.warning(f"Unhandled event: {event}")
+
+    async def initial_connect_loop(self) -> bool:
+        """Attempts to establish an initial connection and login to the server.
+
+        This method will loop, attempting to connect and then log in,
+        using the configured backoff strategy if attempts fail.
+        The backoff mechanism is reset before the first attempt and
+        upon successful connection and login.
+
+        Returns:
+            bool: True if connection and login were successful within retry limits,
+                  False otherwise.
+        """
+        _log.info(f"Attempting initial connection to {self.server_info.host}...")
+        self._backoff.reset()
+
+        while True:
+            connected_ok = await self.bot.loop.run_in_executor(None, self.connect)
+
+            if connected_ok:
+                _log.info(f"Successfully connected to {self.server_info.host}. Attempting login...")
+                logged_in_ok = await self.bot.loop.run_in_executor(None, self.login)
+                if logged_in_ok:
+                    _log.info(f"Successfully logged in to {self.server_info.host}.")
+                    self._backoff.reset()
+                    return True
+                else:
+                    _log.warning(f"Login failed for {self.server_info.host} after successful connection.")
+            else:
+                _log.warning(f"Initial connection attempt failed for {self.server_info.host}.")
+
+            delay = self._backoff.delay()
+            if delay is None:
+                _log.error(f"Max retries exceeded for initial connection to {self.server_info.host}. Stopping attempts.")
+                return False
+
+            _log.info(f"Will retry initial connection to {self.server_info.host} in {delay:.2f} seconds...")
+            await asyncio.sleep(delay)
+
+    async def _reconnect(self, initial_delay: float) -> None:
+        # The first delay is already handled by the caller in _process_events
+        await asyncio.sleep(initial_delay)
+
+        _log.info(f"Starting reconnection process to {self.server_info.host} after initial delay of {initial_delay:.2f}s.")
+
+        # Explicitly disconnect before starting the retry loop to ensure a clean state.
+        _log.debug(f"Attempting explicit disconnect for {self.server_info.host} before reconnection loop.")
+        await self.bot.loop.run_in_executor(None, self.disconnect)
+        # Note: self.disconnect() sets self.connected = False and self.logged_in = False (if it wasn't already).
+        # This is important so that the self.connect() call in the loop starts from a known disconnected state.
+        _log.info(f"Explicit disconnect executed for {self.server_info.host}. Proceeding to reconnection attempts.")
+
+        while True:
+            _log.info(f"Attempting reconnect to {self.server_info.host} (attempt {self._backoff.attempts})...")
+            connected_ok = await self.bot.loop.run_in_executor(None, self.connect)
+
+            if connected_ok:
+                _log.info(f"Re-established connection to {self.server_info.host}. Attempting login...")
+                logged_in_ok = await self.bot.loop.run_in_executor(None, self.login, True)
+                if logged_in_ok:
+                    _log.info(f"Successfully reconnected and logged in to {self.server_info.host}.")
+                    self._backoff.reset()  # Reset backoff upon successful login
+                    return  # Exit the loop and method on success
+                else:
+                    _log.warning(f"Login failed for {self.server_info.host} after successful reconnect.")
+            else:
+                _log.warning(f"Reconnect attempt {self._backoff.attempts} failed for {self.server_info.host}.")
+
+            next_delay = self._backoff.delay()
+
+            if next_delay is None:
+                _log.error(f"Max retries exceeded for reconnecting to {self.server_info.host}. Stopping attempts.")
+                return  # Exit the loop and method if max_tries is reached
+
+            _log.info(f"Will retry reconnect to {self.server_info.host} in {next_delay:.2f} seconds...")
+            await asyncio.sleep(next_delay)
 
     def _get_channel_info(self, channel_id: int):
         _channel = self.getChannel(channel_id)

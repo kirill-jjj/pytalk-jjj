@@ -45,21 +45,30 @@ class TeamTalkBot:
         self.teamtalks: List[TeamTalkInstance] = []
         self._listeners: Dict[str, List[Tuple[asyncio.Future, Callable[..., bool]]]] = {}
 
-    async def add_server(self, server: Union[TeamTalkServerInfo, dict]) -> None:
+    async def add_server(
+        self, server: Union[TeamTalkServerInfo, dict], reconnect: bool = True, backoff_config: Optional[dict] = None
+    ) -> None:
         """Add a server to the bot.
 
         Args:
             server: A Union[TeamTalkServerInfo, dict] object representing the server to add.
                 If a dictionary is provided, it will be converted to a TeamTalkServerInfo object.
+            reconnect (bool): Whether to automatically reconnect to the server if the connection is lost. Defaults to True.
+            backoff_config (Optional[dict]): Optional dictionary to customize backoff behavior.
+                Can contain keys: `base`, `exponent`, `max_value`, `max_tries`.
+                These settings govern the retry behavior for both the initial connection sequence
+                and for reconnections after a connection loss.
         """
         if isinstance(server, dict):
             server = TeamTalkServerInfo.from_dict(server)
         _log.debug(f"Adding server: {self, server}")
-        tt = TeamTalkInstance(self, server)
-        # connect
-        tt.connect()
-        # login
-        tt.login()
+        tt = TeamTalkInstance(self, server, reconnect, backoff_config)
+        successful_initial_connection = await tt.initial_connect_loop()
+        if not successful_initial_connection:
+            _log.error(
+                f"Failed to establish initial connection to server {server.host}:{server.tcp_port} after multiple retries."
+                " Instance will be added but may not be usable."
+            )
         self.teamtalks.append(tt)
 
     def run(self):
