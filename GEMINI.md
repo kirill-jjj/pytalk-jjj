@@ -4,6 +4,16 @@
 
 **Pytalk** is a Python library designed to simplify the creation of bots for the TeamTalk 5 Conferencing System. It provides a high-level, asynchronous, event-driven API that wraps the underlying TeamTalk 5 SDK, abstracting away much of the low-level complexity.
 
+**Key Technologies Used:**
+-   **Python 3.11+**: Primary development language.
+-   **`asyncio`**: For asynchronous and event-driven programming.
+-   **`uv`**: For dependency management and virtual environments.
+-   **`pre-commit`**: For managing Git hooks and ensuring code quality.
+-   **`black`**: Code formatter.
+-   **`flake8`**: Code linter with `flake8-docstrings` and `darglint` plugins.
+-   **`Sphinx`**: For documentation generation.
+-   **`gh` (GitHub CLI)**: For interacting with GitHub (e.g., managing Pull Requests, checking CI status).
+
 The library's architecture is centered around two main classes:
 -   `TeamTalkBot`: The primary entry point for creating a bot. It manages the asyncio event loop, dispatches events, and holds multiple server connections.
 -   `TeamTalkInstance`: Represents a single connection to a TeamTalk server. It handles all direct communication with the SDK, event processing, and actions related to that specific server.
@@ -120,11 +130,92 @@ Gitmoji is an emoji guide for commit messages, making them easier to identify an
     -   **`builder_pytalk` job**: After tests pass, this job builds the Python wheel distribution.
     -   **`publisher_release` job**: This job runs only when a version tag (e.g., `v1.2.3`) is pushed. It verifies the tag is on the `master` branch and then publishes the built wheel to PyPI.
 
-## 5. Areas for Investigation & Doubts
+## 6. Development Environment Setup and Key Commands
 
--   **Direct SDK Interaction (`ctypes`)**: The library interacts with the C-based SDK via `ctypes`. This is most evident in `pytalk/instance.py` and `pytalk/audio.py`. This layer is inherently complex and a common source of bugs (e.g., memory management, segmentation faults). The use of `_AcquireUserAudioBlock` and `_ReleaseUserAudioBlock` shows an awareness of this, but it remains a critical area to watch during development.
--   **Threading Model**: The core library is `asyncio`-based, but some parts use the `threading` module.
-    -   `_utils._do_after`: This function runs a callback after a delay in a separate thread. This is a bit unusual in an asyncio application, where `asyncio.sleep()` and `loop.call_later()` would be more conventional. This might be a remnant of older code or a workaround for a specific blocking issue.
-    -   `streamer.py`: The `Streamer` class heavily uses threads to manage the audio decoding (via `ffmpeg`) and the streaming loop (`_do_stream`) without blocking the main asyncio event loop. This is a valid approach but adds complexity.
--   **Testing Strategy**: The `ci.yaml` file runs `pre-commit`, but it does not run a dedicated test suite (e.g., `pytest` or `unittest`). The `pyproject.toml` also excludes a `tests/*` directory from `flake8`, suggesting tests might exist or are planned, but they are not currently integrated into the CI pipeline. A robust test suite would be crucial for verifying the correctness of the SDK interaction.
--   **Synchronous SDK Calls**: The `TeamTalkInstance.connect` and `login` methods are synchronous, blocking calls that wait for an event from the SDK. In the `async` methods (`initial_connect_loop`, `_reconnect`), these are correctly run in a thread pool executor (`run_in_executor`) to avoid blocking the event loop. This is a good pattern, but it highlights the challenge of integrating a synchronous, callback-based SDK into an async/await paradigm.
+The project uses `uv` for dependency management and running tasks, and `gh` (GitHub CLI) for interacting with GitHub.
+
+### 6.1. Setup Virtual Environment and Install Dependencies
+
+To set up the development environment, create a virtual environment and install all required dependencies (including development and documentation dependencies).
+
+```bash
+# Create a virtual environment (if it doesn't exist)
+uv venv --python 3.11
+
+# Install all dependencies
+uv pip install -r requirements.txt
+# Or, if you want to install optional dependencies as well:
+uv pip install .[docs,dev]
+```
+
+### 6.2. Running Quality Checks (Linting and Formatting)
+
+The project uses `pre-commit` with `black` for code formatting and `flake8` for linting to ensure code quality and a consistent style. `gh` (GitHub CLI) is also used for various repository interactions.
+
+```bash
+# Install pre-commit hooks (run once after cloning)
+uv run pre-commit install
+
+# Run pre-commit hooks on all files (useful before committing or for manual checks)
+uv run pre-commit run --all-files
+```
+
+**Important**: It is crucial to run `uv run pre-commit run --all-files` after making any changes and before committing. This ensures your code adheres to the project's quality standards. If `pre-commit` reports issues, fix them and re-run until all checks pass.
+
+### 6.3. Running Tests
+
+The project structure suggests the presence of tests, but a dedicated `tests` directory was not found in the initial analysis.
+
+**TODO:** Add instructions on how to run tests once the testing setup is identified (e.g., `uv run pytest`).
+
+### 6.4. Building Documentation
+
+The documentation is built using [Sphinx](https://www.sphinx-doc.org/en/master/).
+
+```bash
+# Navigate to the docs directory
+cd docs
+
+# Build the HTML documentation
+make html
+```
+The output will be in `docs/_build/html`.
+
+## 7. Standard Development Workflow
+
+To contribute effectively to this project, follow this standard workflow:
+
+1.  **Create a new branch**: For each new feature, bug fix, or significant change, create a new branch from `master`.
+    ```bash
+    git checkout -b <branch-name>
+    ```
+2.  **Make changes**: Implement your feature or fix.
+3.  **Run `pre-commit` after each task**: After completing *any* logical task (e.g., fixing a bug, adding a small feature, refactoring a function), always run `pre-commit` to ensure code quality and style *before* committing.
+    ```bash
+    uv run pre-commit run --all-files
+    ```
+    If `pre-commit` reports any issues, fix them immediately and re-run `pre-commit` until all checks pass. This iterative approach helps maintain a clean codebase.
+4.  **Commit changes**: Commit your changes using the [Conventional Commits](https://www.conventionalcommits.org/) specification and [Gitmoji](https://gitmoji.dev/) standards. Ensure your commit message accurately reflects the changes.
+    ```bash
+    git add .
+    git commit -m "🐛 fix(scope): descriptive commit message"
+    ```
+5.  **Push your branch**: Push your local branch to the remote repository.
+    ```bash
+    git push --set-upstream origin <branch-name>
+    ```
+6.  **Create a Pull Request (PR)**: Open a Pull Request on GitHub from your branch to `master`. Ensure all CI checks pass. Use `gh pr create` for convenience.
+    ```bash
+    gh pr create --base master --head <branch-name> --title "🐛 fix(scope): descriptive PR title" --body "Detailed description of changes."
+    ```
+7.  **Merge PR**: Once the PR is reviewed and all checks pass, merge it into `master`. Use the "Squash and merge" option for a clean history.
+8.  **Update local `master`**: After merging, switch back to `master` and pull the latest changes.
+    ```bash
+    git checkout master
+    git pull
+    ```
+9.  **Clean up**: Delete your local branch (it will be deleted on remote automatically after merging the PR).
+    ```bash
+    git branch -d <branch-name>
+    ```
+
