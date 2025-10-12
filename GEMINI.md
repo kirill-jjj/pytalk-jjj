@@ -134,6 +134,8 @@ Gitmoji is an emoji guide for commit messages, making them easier to identify an
 
 The project uses `uv` for dependency management and running tasks, and `gh` (GitHub CLI) for interacting with GitHub.
 
+> **Note:** The commands provided throughout this document are intended as examples. It is not always necessary to use them exactly as written. Please adapt them to fit the specific requirements of your task.
+
 ### 6.1. Setup Virtual Environment and Install Dependencies
 
 To set up the development environment, create a virtual environment and install all required dependencies (including development and documentation dependencies).
@@ -218,4 +220,3 @@ To contribute effectively to this project, follow this standard workflow:
     ```bash
     git branch -d <branch-name>
     ```
-
