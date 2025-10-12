@@ -164,15 +164,38 @@ uv run pre-commit run --all-files
 
 **Important**: It is crucial to run `uv run pre-commit run --all-files` after making any changes and before committing. This ensures your code adheres to the project's quality standards. If `pre-commit` reports issues, fix them and re-run until all checks pass.
 
-### 6.3. Running Tests
+### 6.3. Dependency Management
 
-The project structure suggests the presence of tests, but a dedicated `tests` directory was not found in the initial analysis.
+`uv` provides several useful commands for managing dependencies, all of which should be run from the project root.
 
-**TODO:** Add instructions on how to run tests once the testing setup is identified (e.g., `uv run pytest`).
+```bash
+# Synchronize your virtual environment with the project's lock file.
+# This installs/uninstalls packages to match the lock file exactly.
+uv sync
+```
 
-### 6.4. Building Documentation
+### 6.4. Running Tests
 
-The documentation is built using [Sphinx](https://www.sphinx-doc.org/en/master/).
+Although no tests were found in the project's initial analysis, `pytest` is a common choice for testing in the Python ecosystem. Once tests are added (typically in a `tests/` directory), you can run them using the `uv run` command. You may need to add `pytest` to the development dependencies in `pyproject.toml`.
+
+```bash
+# Example of how to run tests with pytest
+uv run pytest
+```
+
+### 6.5. Building the Package
+
+To distribute or install the library locally, you can build it into a standard Python wheel (`.whl`) file using `uv`'s built-in command. This is the preferred method.
+
+```bash
+# Run the build process from the project root
+uv build
+```
+This command will create a `dist/` directory containing the built wheel and a source archive.
+
+### 6.6. Building Documentation
+
+The documentation is built using [Sphinx](https://www.sphinx-doc.org/en/master/). The `make` command should be run inside the `docs` directory.
 
 ```bash
 # Navigate to the docs directory
@@ -183,40 +206,181 @@ make html
 ```
 The output will be in `docs/_build/html`.
 
+### 6.7. Manual SDK Download
+
+The library is designed to automatically download the TeamTalk SDK on its first run if it's not found. Therefore, running the downloader manually is **not part of the standard workflow**. This command is only for specific troubleshooting scenarios, such as forcing a re-download of the SDK.
+
+```bash
+# Run the SDK downloader script directly via uv
+uv run python -m pytalk.tools.ttsdk_downloader
+```
+
 ## 7. Standard Development Workflow
 
 To contribute effectively to this project, follow this standard workflow:
 
-1.  **Create a new branch**: For each new feature, bug fix, or significant change, create a new branch from `master`.
+1.  **Create a Branch**: Start by creating a new branch from `master` for your feature or fix.
     ```bash
     git checkout -b <branch-name>
     ```
-2.  **Make changes**: Implement your feature or fix.
-3.  **Run `pre-commit` after each task**: After completing *any* logical task (e.g., fixing a bug, adding a small feature, refactoring a function), always run `pre-commit` to ensure code quality and style *before* committing.
+2.  **Implement Changes**: Write your code and make the necessary changes.
+
+3.  **Verify Changes**: Before committing, it is crucial to verify your work by running all quality checks and tests.
     ```bash
+    # Run all pre-commit hooks (formatting, linting, etc.)
     uv run pre-commit run --all-files
+
+    # Run the test suite (once implemented)
+    uv run pytest
     ```
-    If `pre-commit` reports any issues, fix them immediately and re-run `pre-commit` until all checks pass. This iterative approach helps maintain a clean codebase.
-4.  **Commit changes**: Commit your changes using the [Conventional Commits](https://www.conventionalcommits.org/) specification and [Gitmoji](https://gitmoji.dev/) standards. Ensure your commit message accurately reflects the changes.
+    If any of these commands fail, fix the issues and run them again until they all pass.
+
+4.  **Stage and Review Changes**: Stage your files and review them one last time before committing.
+
     ```bash
+
+    # Stage all changes
+
     git add .
-    git commit -m "🐛 fix(scope): descriptive commit message"
+
+
+
+    # Check the status to see what is staged
+
+    git status
+
+
+
+    # Review the exact changes that are staged for commit
+
+    git diff --staged
+
     ```
-5.  **Push your branch**: Push your local branch to the remote repository.
+
+
+
+5.  **Commit Changes**: Commit your staged changes using the project's conventions.
+
     ```bash
+
+    git commit -m "✨ feat(scope): descriptive commit message"
+
+    ```
+
+
+
+6.  **Push Branch**: Push your local branch to the remote repository.
+
+    ```bash
+
     git push --set-upstream origin <branch-name>
+
     ```
-6.  **Create a Pull Request (PR)**: Open a Pull Request on GitHub from your branch to `master`. Ensure all CI checks pass. Use `gh pr create` for convenience.
+
+
+
+7.  **Create a Pull Request (PR)**: On GitHub, open a Pull Request from your branch to `master`. Use the `gh` CLI for convenience.
+
     ```bash
-    gh pr create --base master --head <branch-name> --title "🐛 fix(scope): descriptive PR title" --body "Detailed description of changes."
+
+    gh pr create --base master --head <branch-name> --title "✨ feat(scope): descriptive PR title" --body "Detailed description of changes."
+
     ```
-7.  **Merge PR**: Once the PR is reviewed and all checks pass, merge it into `master`. Use the "Squash and merge" option for a clean history.
-8.  **Update local `master`**: After merging, switch back to `master` and pull the latest changes.
+
+
+
+8.  **GitHub CLI Integration**: After creating a PR, you can use `gh` to track its status, investigate CI/CD runs, and manage related issues without leaving the command line.
+
+
+
+    **Tracking Pull Requests:**
+
     ```bash
+
+    # Display the status of your PRs and PRs waiting for your review
+
+    gh pr status
+
+
+
+    # Open the current branch's PR in the web browser
+
+    gh pr view --web
+
+    ```
+
+
+
+    **Investigating CI/CD Runs:**
+
+    If a check fails, you can inspect the logs directly in your terminal.
+
+    ```bash
+
+    # List the most recent runs for the current branch
+
+    gh run list
+
+
+
+    # List only the failed runs for the current branch
+
+    gh run list --status failure
+
+
+
+    # View the details and logs of a specific run (replace RUN_ID)
+
+    gh run view RUN_ID --log
+
+
+
+    # Watch a run in real-time
+
+    gh run watch
+
+    ```
+
+
+
+    **Managing Issues:**
+
+    ```bash
+
+    # List all open issues in the repository
+
+    gh issue list
+
+
+
+    # View a specific issue in the browser
+
+    gh issue view ISSUE_ID --web
+
+    ```
+
+
+
+9.  **Merge PR**: After the PR is reviewed and all CI checks pass, merge it into `master`.
+
+
+
+10. **Update Local `master`**: Switch back to your local `master` branch and pull the latest changes.
+
+    ```bash
+
     git checkout master
+
     git pull
+
     ```
-9.  **Clean up**: Delete your local branch (it will be deleted on remote automatically after merging the PR).
+
+
+
+11. **Clean Up**: Delete your local feature branch.
+
     ```bash
+
     git branch -d <branch-name>
+
     ```
