@@ -63,9 +63,25 @@ ignore = ["D203", "D211", "D212", "D213", "ISC001", "S603", "UP022", "N813", "D4
 
 
 
+
+[tool.mypy]
+strict = true
+exclude = [
+    "docs/",
+    "tests/",
+    "pytalk/tools/",
+    "pytalk/implementation/",
+    "pytalk/__init__.py",
+    "pytalk/implementation/__init__.py",
+    "example.py",
+]
+
 [dependency-groups]
 dev = [
     "pre-commit~=4.3",
     "ruff~=0.14",
     "flake8-logging-format",
+    "mypy~=1.18",
+    "types-requests",
+    "types-beautifulsoup4",
 ]
