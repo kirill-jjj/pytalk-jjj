@@ -33,7 +33,8 @@ Added
 
 Changed
 ~~~~~~~
-- Refactored Ruff linting and formatting configuration, replacing 'black' pre-commit hook with 'ruff-format'.
+- **`pytalk.enums.Status` methods are now class methods**: The `online`, `away`, `question`, `male`, `female`, and `neutral` attributes of the `pytalk.enums.Status` class are now class methods instead of class properties. This change was made to improve type hinting and consistency.
+  **Action Required**: Update all calls to these attributes by appending `()` to them. For example, change `Status.online.male` to `Status.online().male`.
 - Conditional import and installation of `uvloop` for Linux platforms to prevent `ModuleNotFoundError` on non-Linux systems.
 
 Fixed

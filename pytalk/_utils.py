@@ -2,6 +2,7 @@ import math
 import threading
 import time
 from collections.abc import Callable
+from typing import Any, cast
 
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
@@ -20,7 +21,7 @@ def _wait_for_event(
     end = timestamp() + timeout
     while msg.nClientEvent != event:
         if timestamp() >= end:
-            return False, sdk.TTMessage()
+            return False, cast("Any", sdk.TTMessage())  # type: ignore
         msg = ttclient.getMessage(timeout)
 
     return True, msg
@@ -32,12 +33,14 @@ def _wait_for_cmd_success(
     result = True
     while result:
         result, msg = _wait_for_event(
-            ttclient, sdk.ClientEvent.CLIENTEVENT_CMD_SUCCESS, timeout
+            ttclient,
+            cast("sdk.ClientEvent", sdk.ClientEvent.CLIENTEVENT_CMD_SUCCESS),
+            timeout,
         )
         if result and msg.nSource == cmdid:
             return result, msg
 
-    return False, sdk.TTMessage()
+    return False, cast("Any", sdk.TTMessage())  # type: ignore
 
 
 def _wait_for_cmd(
@@ -55,7 +58,7 @@ def _wait_for_cmd(
         ):
             return True, msg
         if timestamp() >= end:
-            return False, sdk.TTMessage()
+            return False, cast("Any", sdk.TTMessage())  # type: ignore
 
 
 def _get_abs_time_diff(t1: float, t2: float) -> int:
@@ -244,8 +247,8 @@ def _tt_attr_to_py_attr(attr: str) -> str:
     return name
 
 
-def _do_after(delay: float, func: Callable) -> None:
-    def _do_after_thread(delay: float, func: Callable) -> None:
+def _do_after(delay: float, func: Callable[..., Any]) -> None:
+    def _do_after_thread(delay: float, func: Callable[..., Any]) -> None:
         initial_time = time.time()
         while _get_abs_time_diff(initial_time, time.time()) < (delay * 1000):
             time.sleep(0.001)

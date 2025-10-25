@@ -1,5 +1,7 @@
 """Provides a dynamic way to access SDK codec identifiers by user-friendly names."""
 
+from typing import cast
+
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 
@@ -16,7 +18,7 @@ class _CodecTypeMeta(type):
 
         for sdk_name_candidate in potential_names_in_sdk:
             if hasattr(sdk.Codec, sdk_name_candidate):
-                return getattr(sdk.Codec, sdk_name_candidate)
+                return cast("int", getattr(sdk.Codec, sdk_name_candidate))
 
         raise AttributeError(
             f"'{cls.__name__}' has no attribute '{name}' corresponding to a "

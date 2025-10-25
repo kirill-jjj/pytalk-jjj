@@ -1,6 +1,6 @@
 """Provides the SoundDevice class representing a TeamTalk audio device."""
 
-from typing import Any
+from typing import Any, cast
 
 from ._utils import _get_tt_obj_attribute
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
@@ -42,7 +42,7 @@ class SoundDevice:
         try:
             value = _get_tt_obj_attribute(self._device_struct, name)
             if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
-                return sdk.ttstr(value)
+                return sdk.ttstr(cast("sdk.TTCHAR_P", value))
             return value
         except AttributeError:
             raise AttributeError(
@@ -57,7 +57,7 @@ class SoundDevice:
             The integer device ID.
 
         """
-        return self.device_id
+        return cast("int", self.device_id)
 
     @property  # noqa: DAR201
     def name(self) -> str:
@@ -67,7 +67,7 @@ class SoundDevice:
             The string name of the device.
 
         """
-        return self.device_name
+        return cast("str", self.device_name)
 
     @property  # noqa: DAR201
     def sound_system(self) -> int:
@@ -77,7 +77,7 @@ class SoundDevice:
             The integer ID of the sound system.
 
         """
-        return self.sound_system
+        return cast("int", self.sound_system)
 
     @property  # noqa: DAR201
     def is_input(self) -> bool:
@@ -88,7 +88,7 @@ class SoundDevice:
 
         """
         try:
-            return self.max_input_channels > 0
+            return cast("int", self.max_input_channels) > 0
         except AttributeError:
             return False
 
@@ -101,7 +101,7 @@ class SoundDevice:
 
         """
         try:
-            return self.max_output_channels > 0
+            return cast("int", self.max_output_channels) > 0
         except AttributeError:
             return False
 
@@ -139,7 +139,9 @@ class SoundDevice:
             )
         except AttributeError:
             _id = getattr(self._device_struct, "nDeviceID", "N/A")
-            _name = sdk.ttstr(getattr(self._device_struct, "szDeviceName", "N/A"))
+            _name = sdk.ttstr(
+                cast("Any", getattr(self._device_struct, "szDeviceName", "N/A"))
+            )
             return (
                 f"SoundDevice(id={_id}, name='{_name}{default_marker}', "
                 f"type='{type_str}')"
