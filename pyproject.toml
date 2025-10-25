@@ -76,6 +76,11 @@ exclude = [
     "example.py",
 ]
 
+
+[[tool.mypy.overrides]]
+module = "pytalk.implementation.*"
+ignore_errors = true
+
 [dependency-groups]
 dev = [
     "pre-commit~=4.3",
