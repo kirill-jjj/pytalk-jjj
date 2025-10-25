@@ -19,10 +19,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "beautifulsoup4~=4.12",
-    "patool~=3.0",
+    "beautifulsoup4~=4.14",
+    "patool~=4.0",
     "requests~=2.32",
-    "typing-extensions~=4.12",
+    "typing-extensions~=4.15",
     "uvloop; sys_platform == 'linux'",
 ]
 
@@ -65,7 +65,7 @@ ignore = ["D203", "D211", "D212", "D213", "ISC001", "S603", "UP022", "N813", "D4
 
 [dependency-groups]
 dev = [
-    "pre-commit~=4.0.1",
-    "ruff~=0.14.2",
+    "pre-commit~=4.3",
+    "ruff~=0.14",
     "flake8-logging-format",
 ]

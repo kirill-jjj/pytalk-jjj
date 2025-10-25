@@ -16,7 +16,8 @@ from typing import (
     TypeVar,
 )
 
-import uvloop
+if sys.platform.startswith("linux"):
+    import uvloop
 
 from .enums import TeamTalkServerInfo
 from .instance import TeamTalkInstance
@@ -100,8 +101,8 @@ class TeamTalkBot:
             try:
                 uvloop.install()
                 _log.info("Using uvloop as the event loop policy.")
-            except ImportError:
-                pass  # uvloop not installed, using default loop
+            except (ImportError, NameError):
+                pass  # uvloop not installed or not imported, using default loop
 
         async def runner() -> None:
             async with self:
