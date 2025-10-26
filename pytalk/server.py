@@ -3,7 +3,12 @@
 import ctypes
 from typing import TYPE_CHECKING, cast
 
-from ._utils import _get_tt_obj_attribute, _set_tt_obj_attribute, _tt_attr_to_py_attr
+from ._utils import (
+    _get_tt_obj_attribute,
+    _set_tt_obj_attribute,
+    _tt_attr_to_py_attr,
+    _wait_for_cmd,
+)
 from .channel import Channel as TeamTalkChannel
 from .enums import TeamTalkServerInfo
 from .exceptions import PytalkPermissionError
@@ -281,11 +286,25 @@ class Server:
                 "The bot does not have permission to update the server properties"
             )
         # get the underlying properties object
-        properties = cast("ServerProperties", properties.properties)
-        sdk._DoUpdateServer(
+        result = sdk._DoUpdateServer(
             self.teamtalk_instance._tt,
             ctypes.byref(cast("sdk.ServerProperties", properties.properties)),
         )
+        if result == -1:
+            raise ValueError("Server properties could not be updated")
+        cmd_result, cmd_err = _wait_for_cmd(self.teamtalk_instance, result, 2000)
+        if not cmd_result:
+            err_nr = cmd_err.nErrorNo
+            if err_nr == sdk.ClientError.CMDERR_NOT_LOGGEDIN:
+                raise PytalkPermissionError("The bot is not logged in")
+            if err_nr == sdk.ClientError.CMDERR_NOT_AUTHORIZED:
+                raise PytalkPermissionError(
+                    "The bot does not have permission to update server properties"
+                )
+            raise ValueError(
+                f"Server properties update failed with error: "
+                f"{sdk.ttstr(cmd_err.szErrorMsg)}"
+            )
 
     def __getattr__(self, name: str) -> object:
         """Try to get the specified attribute on server.
