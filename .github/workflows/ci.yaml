@@ -42,28 +42,27 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Print Python information
-        run: python -VV
-
-      - name: Install and configure uv
-        run: pip install uv
-
-      - name: Restore venv cache
-        uses: actions/cache@v4
-        id: cached-uv-dependencies
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/uv.lock') }}
+      - name: Configure hatch cache
+        run: |
+          echo "HATCH_CACHE_DIR=$(hatch config find | grep -oP '(?<=\"cache\": \")[^\"]+')" >> $GITHUB_ENV
 
       - name: Install dependencies
-        if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
-        run: uv sync --all-extras
+        run: hatch env create
 
       - name: Download TeamTalk SDK
-        run: uv run python -c "import pytalk"
+        run: hatch run default:sdk-download
 
       - name: Run linting
-        run: uv run pre-commit run --all-files
+        run: hatch run dev:lint
+
+      - name: Run formatting check
+        run: hatch run dev:format -- --check
+
+      - name: Run type checking
+        run: hatch run dev:typecheck
+
+      - name: Install pre-commit hooks
+        run: hatch run dev:hooks
 
 
 
@@ -83,22 +82,26 @@ jobs:
         with:
           python-version: "3.9"   # wheel is Py‑version‑agnostic
 
-      - name: Install and configure uv
-        run: pip install uv
+      - name: Install hatch
+        run: pip install hatch
 
-      - name: Restore venv cache
+      - name: Configure hatch cache
+        run: |
+          echo "HATCH_CACHE_DIR=$(hatch config find | grep -oP '(?<=\"cache\": \")[^\"]+')" >> $GITHUB_ENV
+
+      - name: Cache hatch environments
         uses: actions/cache@v4
-        id: cached-uv-dependencies
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/uv.lock') }}
+          path: ${{ env.HATCH_CACHE_DIR }}
+          key: hatch-env-${{ runner.os }}-3.9-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            hatch-env-${{ runner.os }}-3.9-
 
       - name: Install dependencies
-        if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
-        run: uv sync --all-extras
+        run: hatch env create
 
       - name: Build wheel
-        run: uv build
+        run: hatch build
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
