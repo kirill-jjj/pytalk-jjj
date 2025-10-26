@@ -301,36 +301,41 @@ To contribute effectively to this project, follow this standard workflow:
 
     **For Unix-like systems (Linux, macOS, Git Bash):**
     ```bash
-    # 1. Create a temporary file and write the commit message to it
+    # 1. Create a temporary file and write the commit message to it using `write_file`
     #    (Replace the content with your actual commit message)
-    echo "✨ feat(scope): descriptive commit message" > commit_message.txt
-    echo "" >> commit_message.txt # Add a blank line for the body
-    echo "Detailed body of the commit message." >> commit_message.txt
-    echo "- List changes or reasons here." >> commit_message.txt
+    #    Note: The `write_file` tool requires an absolute path.
+    #    Example content for commit_message.txt:
+    #    "✨ feat(scope): descriptive commit message\n\nDetailed body of the commit message.\n- List changes or reasons here."
+    #    The content should be a single string with newlines for multi-line messages.
+    #    Example tool call:
+    #    print(default_api.write_file(file_path="/path/to/project/commit_message.txt", content="✨ feat(scope): descriptive commit message\n\nDetailed body of the commit message.\n- List changes or reasons here."))
 
     # 2. Commit using the message from the file
     git commit -F commit_message.txt
 
-    # 3. Delete the temporary file after the commit
-    rm commit_message.txt
+    # 3. Delete the temporary file after the commit using `run_shell_command`
+    #    Example tool call:
+    #    print(default_api.run_shell_command(command="rm commit_message.txt", description="Delete temporary commit message file."))
     ```
 
     **For Windows (Command Prompt/PowerShell):**
     ```cmd
-    :: 1. Create a temporary file and write the commit message to it
+    :: 1. Create a temporary file and write the commit message to it using `write_file`
     ::    (Replace the content with your actual commit message)
-    echo "✨ feat(scope): descriptive commit message" > commit_message.txt
-    echo.>> commit_message.txt REM Add a blank line for the body
-    echo "Detailed body of the commit message." >> commit_message.txt
-    echo "- List changes or reasons here." >> commit_message.txt
+    ::    Note: The `write_file` tool requires an absolute path.
+    ::    Example content for commit_message.txt:
+    ::    "✨ feat(scope): descriptive commit message\n\nDetailed body of the commit message.\n- List changes or reasons here."
+    ::    The content should be a single string with newlines for multi-line messages.
+    ::    Example tool call:
+    ::    print(default_api.write_file(file_path="C:\\path\\to\\project\\commit_message.txt", content="✨ feat(scope): descriptive commit message\n\nDetailed body of the commit message.\n- List changes or reasons here."))
 
     :: 2. Commit using the message from the file
     git commit -F commit_message.txt
 
-    :: 3. Delete the temporary file after the commit
-    del commit_message.txt
+    :: 3. Delete the temporary file after the commit using `run_shell_command`
+    ::    Example tool call:
+    ::    print(default_api.run_shell_command(command="del commit_message.txt", description="Delete temporary commit message file."))
     ```
-
 
 
 6.  **Push Branch**: Push your local branch to the remote repository.
