@@ -60,7 +60,6 @@ class UserAccount:
         return value
 
 
-# make a subclass of UserAccount for a banned user
 class BannedUserAccount(UserAccount):
     """Represents a banned user account on a TeamTalk server.
 
@@ -69,5 +68,3 @@ class BannedUserAccount(UserAccount):
     TeamTalkBot.list_banned_users() method to get a list of BannedUserAccount
     objects. # noqa
     """
-
-    # shouldn't do anything extra

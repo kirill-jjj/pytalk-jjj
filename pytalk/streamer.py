@@ -121,35 +121,28 @@ class Streamer:
         self.sample_rate = sample_rate
         self.channels = channels
         self.block_size = block_size
-        # the list of blocks that will be streamed
         self.blocks: list[bytes] = []
         self.current_data = b""
-        # streamer id
         self.stream_id = random.randint(6000, 6999)  # noqa: S311
-        # capabilities for  ffmpeg and yt-dlp
         self.ffmpeg_available = self._has_ffmpeg()
         self.yt_dlp_available = self._has_yt_dlp()
-        # start the stream function on another thread
         self.running = True
         self._streamer_thread = threading.Thread(target=self._do_stream, daemon=True)
         self._streamer_thread.start()
         self._current_streamer_thread: threading.Thread | None = None
         self._current_streamer_running = False
-        self._stream_lock = (
-            threading.Lock()
-        )  # To ensure mutual exclusion when starting/stopping streams.
+        self._stream_lock = threading.Lock()
 
-    def __del__(self) -> None:
-        """Shuts down the streamer by adding a null-block to the blocks list and."
+        def __del__(self: "Streamer") -> None:  # noqa: N807
+            """Shuts down the streamer by adding a null-block to the blocks list and.
 
-        waiting for the blocks list to be empty.
-        """
-        # add a block with 0 length to the blocks list to stop the streamer
-        self.blocks.append(b"")
-        # wait for the blocks list to be empty
+            waiting for the blocks list to be empty.
+
+            """
+            self.blocks.append(b"")
+
         while len(self.blocks) > 0:
             pass
-        # stop the streamer
         self.running = False
 
     def search_and_stream(self, query: str) -> None:
@@ -174,17 +167,15 @@ class Streamer:
         )
         song = result.stdout.decode("utf-8").strip()
         if not song:
-            # send a message to the channel
             self.channel.send_message("No results found.")
             return
-        # stream the song
         self.stream(song)
 
     def stop(self) -> None:
         """Stop the current stream."""
         self.blocks.clear()
-        self._request_stop_stream()  # Gracefully request the current stream to stop.
-        self._wait_for_cleanup()  # Wait for the cleanup to complete.
+        self._request_stop_stream()
+        self._wait_for_cleanup()
 
     def stream(self, path: str) -> None:
         """Streams a file or an url to the channel.
@@ -198,10 +189,9 @@ class Streamer:
 
         """
         with self._stream_lock:
-            self._request_stop_stream()  # Gracefully request the current stream to
-            # stop.
-            self._wait_for_cleanup()  # Wait for the cleanup to complete.
-            self._start_new_stream(path)  # Start the new stream.
+            self._request_stop_stream()
+            self._wait_for_cleanup()
+            self._start_new_stream(path)
 
     def _request_stop_stream(self) -> None:
         if self._current_streamer_thread is not None:
@@ -210,7 +200,7 @@ class Streamer:
     def _wait_for_cleanup(self) -> None:
         if self._current_streamer_thread:
             self._current_streamer_running = False
-            self.blocks.clear()  # Clear the blocks list, ensuring the streamer stops.
+            self.blocks.clear()
             self.blocks.append(b"")
 
     def _start_new_stream(self, path: str) -> None:
@@ -234,21 +224,21 @@ class Streamer:
             ffmpeg_command = [
                 "ffmpeg",
                 "-i",
-                path,  # Input URL
+                path,
                 "-f",
-                "wav",  # Output format
+                "wav",
                 "-acodec",
-                "pcm_s16le",  # Audio codec
+                "pcm_s16le",
                 "-ar",
-                f"{str(self.sample_rate)}",  # Sample rate
+                f"{str(self.sample_rate)}",
                 "-ac",
-                str(self.channels),  # Number of audio channels
+                str(self.channels),
                 "-threads",
-                str(multiprocessing.cpu_count()),  # Number of threads
+                str(multiprocessing.cpu_count()),
                 "-hide_banner",
                 "-loglevel",
-                "error",  # Suppress output
-                "-",  # Output to stdout
+                "error",
+                "-",
             ]
             ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
         try:
@@ -407,13 +397,11 @@ class Streamer:
 
     def _graceful_shutdown(self, process: subprocess.Popen[bytes]) -> None:
         if process:
-            process.terminate()  # Send SIGTERM
+            process.terminate()
             try:
-                process.wait(
-                    timeout=2
-                )  # Wait for up to 5 seconds for the process to exit
+                process.wait(timeout=2)
             except subprocess.TimeoutExpired:
-                process.kill()  # Force kill if it doesn't terminate in time
+                process.kill()
             finally:
                 if process.stdout:
                     process.stdout.close()
@@ -430,30 +418,22 @@ class Streamer:
             int: The stream id of the stream.
 
         """
-        # first add the data to the current data
         self.current_data += data
         if len(self.current_data) >= self.block_size:
-            # if it is, then split it into 4*1024 byte chunks
             chunks = [
                 self.current_data[i : i + self.block_size]
                 for i in range(0, len(self.current_data), self.block_size)
             ]
-            # then add all but the last chunk to the blocks list
             self.blocks.extend(chunks[:-1])
-            # then set the current data to the last chunk
             self.current_data = chunks[-1]
         else:
-            # if it is not, then just add the block to the blocks list
             self.blocks.append(data)
         return self.stream_id
 
     def _do_stream(self) -> None:
         while self.running:
-            # if there are blocks to stream
             if len(self.blocks) > 0:
-                # get the first block
                 block = self.blocks[0]
-                # create a new audio block
                 audio_block = sdk.AudioBlock()
                 audio_block.nStreamID = self.stream_id
                 audio_block.nSampleRate = self.sample_rate
@@ -464,17 +444,14 @@ class Streamer:
                     ctypes.c_void_p,
                 )
                 audio_block.uStreamTypes = sdk.StreamType.STREAMTYPE_VOICE
-                # send the audio block
                 result = 0
                 while result == 0:
                     result = sdk._InsertAudioBlock(
                         self.channel.teamtalk._tt, audio_block
                     )
-                # remove the block from the blocks list
                 self.blocks = self.blocks[1:]
 
     def _has_ffmpeg(self) -> bool:
-        # check if ffmpeg is installed
         try:
             result = subprocess.run(
                 ["ffmpeg", "-version"],  # noqa: S607
@@ -489,7 +466,6 @@ class Streamer:
         return True
 
     def _has_yt_dlp(self) -> bool:
-        # check if yt-dlp is installed
         try:
             result = subprocess.run(
                 ["yt-dlp", "--version"],  # noqa: S607

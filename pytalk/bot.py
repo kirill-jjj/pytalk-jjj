@@ -48,7 +48,6 @@ class TeamTalkBot:
         """
         self.client_name = client_name
         self.loop: asyncio.AbstractEventLoop = _loop
-        # hold a list of TeamTalk instances
         self.teamtalks: list[TeamTalkInstance] = []
         self._listeners: dict[
             str, list[tuple[asyncio.Future[Any], Callable[..., bool]]]
@@ -98,24 +97,18 @@ class TeamTalkBot:
                 uvloop.install()
                 _log.info("Using uvloop as the event loop policy.")
             except (ImportError, NameError):
-                pass  # uvloop not installed or not imported, using default loop
+                pass
 
         async def runner() -> None:
             async with self:
                 await self._start()
 
         try:
-            # set our loop the asyncio event loop
             asyncio.run(runner())
         except KeyboardInterrupt:
-            # nothing to do here
-            # `asyncio.run` handles the loop cleanup
-            # and `self.start` closes all sockets and the HTTPClient instance.
             return
 
     async def _async_setup_hook(self) -> None:
-        # Called whenever the client needs to initialise asyncio objects with a
-        # running loop
         loop = asyncio.get_running_loop()
         self.loop = loop
 
@@ -209,9 +202,7 @@ class TeamTalkBot:
         *args: object,
         **kwargs: object,
     ) -> asyncio.Task[Any]:
-        # print all the events to log
         wrapped = self._run_event(coro, event_name, *args, **kwargs)
-        # Schedules the task
         return self.loop.create_task(wrapped, name=f"teamtalk.py: {event_name}")
 
     async def on_error(
@@ -287,17 +278,13 @@ class TeamTalkBot:
 
     async def _start(self) -> None:
         self.dispatch("ready")
-        # make a while loop and allow it to run forever
         try:
             while True:
-                # loop through the teamtalks and check  for events
                 for teamtalk in self.teamtalks:
                     await teamtalk._process_events()
                 await asyncio.sleep(0.001)
         except KeyboardInterrupt:
-            # try to disconnect everything cleanly
             for teamtalk in self.teamtalks:
-                # disconnect from the server
                 teamtalk.doLogout()
                 self.dispatch("my_logout", teamtalk.server)
                 teamtalk.disconnect()

@@ -15,7 +15,9 @@ class Statistics:
     """represents the statistics of a TeamTalk server."""
 
     def __init__(
-        self, teamtalk: TeamTalkInstance, statistics: sdk.ServerStatistics
+        self,
+        teamtalk: TeamTalkInstance,
+        statistics: sdk.ServerStatistics,
     ) -> None:
         """Initialize a statistics object.
 
