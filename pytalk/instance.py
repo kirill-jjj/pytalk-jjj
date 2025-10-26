@@ -634,7 +634,7 @@ class TeamTalkInstance(sdk.TeamTalk):
             channel: The channel to join.
 
         """
-        super().doJoinChannelByID(channel.id, channel.password)
+        super().doJoinChannelByID(channel.id, sdk.ttstr(channel.password))  # type: ignore [arg-type]
 
     def leave_channel(self) -> None:
         """Leaves the current channel."""

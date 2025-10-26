@@ -52,10 +52,13 @@ Fixed
 - Changed the return type of `kick_user` and `ban_user` methods in `pytalk.TeamTalkInstance` from `None` to `bool` to reflect their behavior.
 - Corrected the implementation of `move_user` in `pytalk.TeamTalkInstance`.
 - Fixed the signature of the `unban_user` method in `pytalk.Server` to correctly accept an `ip` string.
+- Consistently decode SDK string attributes in wrapper classes (`__getattr__` methods) to resolve `b''` prefixes and ensure consistent string handling across platforms.
+- Ensured `pytalk.Server.update_properties` correctly awaits SDK confirmation for server property updates, resolved an `AttributeError` due to incorrect object access, and improved error handling.
+- Corrected mapping for `USER_TEXTMESSAGE` in `pytalk.subscription._SubscriptionMeta.__getattr__` to `SUBSCRIBE_USER_MSG` for accurate SDK interaction.
+- Resolved immediate timeout in `pytalk.TeamTalkInstance.get_server_statistics` by correctly converting timeout to milliseconds. Also fixed `AttributeError` for statistics attributes by refining `_get_tt_obj_attribute` to properly handle acronyms and simplify attribute lookup.
+- Implemented platform-dependent path decoding in `pytalk.TeamTalkInstance.get_path_from_channel` to correctly handle channel paths on both Windows and Linux.
 - Resolved various `mypy` errors, improving overall type safety.
 - Resolved various Ruff linting errors (TC001, RET504, A002, E501, S602, S607, ARG002, ANN401, ANN003).
-- Ensured all pre-commit hooks pass.
-- Corrected trailing newline in `pyproject.toml`.
 - Fixed logical error in `Statistics.refresh()` method.
 
 :version:`1.6.2` - 2025-10-12
