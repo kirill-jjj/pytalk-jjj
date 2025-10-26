@@ -1,6 +1,5 @@
 """Module defines a User class that represents a user on a TeamTalk server."""
 
-# Union type
 from typing import TYPE_CHECKING, cast
 
 from ._utils import _get_tt_obj_attribute
@@ -39,13 +38,10 @@ class User:
 
         """
         self.teamtalk_instance = teamtalk_instance
-        # if user is str, assume it's a username
         if isinstance(user, str):
             self._user = self.teamtalk_instance.getUserByUsername(sdk.ttstr(user))  # type: ignore [arg-type]
-        # if user is int, assume it's a user_id
         elif isinstance(user, int):
             self._user = self.teamtalk_instance.getUser(user)
-        # if the user argument is already of type sdk.User, just set it to self._user
         elif isinstance(user, sdk.User):
             self._user = user
         else:
@@ -90,7 +86,6 @@ class User:
         msg.nToUserID = self.user_id
         msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        # get a pointer to our message
         self.teamtalk_instance._send_message(msg, **kwargs)
 
     def move(self, channel: "TeamTalkChannel") -> None:

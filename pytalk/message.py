@@ -48,7 +48,7 @@ class Message:
                 more information.
 
         Returns:
-            The message ID of the reply.
+            The ID of the message if successful, or a negative value if unsuccessful.
 
         Raises:
             PytalkPermissionError: If the sender doesn't have permission
@@ -59,7 +59,6 @@ class Message:
         msg.nMsgType = self.type
         msg.nFromUserID = self.teamtalk_instance.getMyUserID()
         msg.szFromUsername = self.teamtalk_instance.getMyUserAccount().szUsername
-        # if self is channel message, then reply to channel
         if isinstance(self, ChannelMessage):
             if (
                 self.teamtalk_instance.getMyChannelID() != self.to_id
@@ -70,7 +69,6 @@ class Message:
                 )
             msg.nChannelID = self.to_id
         if isinstance(self, BroadcastMessage):
-            # if we aren ot admin we cant do this
             if not self.teamtalk_instance.is_admin():
                 raise PytalkPermissionError(
                     "You don't have permission to send broadcast messages."
@@ -105,7 +103,6 @@ class Message:
         )
 
 
-# make a channel message subclass
 class ChannelMessage(Message):
     """Represents a message sent to a channel.
 
@@ -146,7 +143,6 @@ class DirectMessage(Message):
         """
         super().__init__(teamtalk_instance, msg)
         self.to_id = msg.nToUserID
-        # if the id is still 0, then it's a private message to the bot
         if self.to_id == 0:
             self.to_id = teamtalk_instance.getMyUserID()
 

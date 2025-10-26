@@ -94,9 +94,7 @@ class TeamTalkInstance(sdk.TeamTalk):
 
         """
         super().__init__()
-        # set the bot
         self.bot = bot
-        # set the server info
         self.server_info = server_info
         self.server = TeamTalkServer(self, server_info)
         self.channel = lambda: self.get_channel(self.getMyChannelID())
@@ -170,7 +168,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             channel_id_to_join = self.server_info.join_channel_id
             if channel_id_to_join > 0:  # Only join if channel_id is strictly positive
                 self.join_channel_by_id(channel_id_to_join)
-            # If channel_id_to_join is 0 or negative, nothing happens.
         self.init_time = time.time()
         return True
 
@@ -203,22 +200,16 @@ class TeamTalkInstance(sdk.TeamTalk):
 
         """
         _log.info("Forcing reconnect attempt to %s...", self.server_info.host)
-        # Explicitly disconnect if currently connected to ensure a clean state,
-        # as initial_connect_loop assumes it's starting fresh or from a
-        # disconnected state.
         if self.connected:
             _log.debug(
                 "Force_reconnect: Instance to %s is currently "
                 "connected. Disconnecting first.",
                 self.server_info.host,
             )
-            # Run synchronous disconnect in executor to avoid blocking
             await self.bot.loop.run_in_executor(None, self.disconnect)
-            # Ensure flags are set correctly after disconnect
             self.connected = False
             self.logged_in = False
 
-        # initial_connect_loop already calls self._backoff.reset() at its beginning.
         return await self.initial_connect_loop()
 
     def change_nickname(self, nickname: str) -> None:
@@ -488,7 +479,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             )
         return bool(success)
 
-    # Media File Streaming Functions
     def start_streaming_media_file_to_channel(
         self, path: str, video_codec: sdk.VideoCodec | None = None
     ) -> bool:
@@ -526,7 +516,6 @@ class TeamTalkInstance(sdk.TeamTalk):
         """
         return bool(super().stopStreamingMediaFileToChannel())
 
-    # permission stuff
     def has_permission(self, permission: int) -> bool:
         """Check if the bot has a permission.
 
@@ -540,7 +529,6 @@ class TeamTalkInstance(sdk.TeamTalk):
 
         """
         user = super().getMyUserAccount()
-        # first check if they are an admin
         if user.uUserType == sdk.UserType.USERTYPE_ADMIN:
             return True
         user_rights = user.uUserRights
@@ -575,7 +563,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             return user.user_type == sdk.UserType.USERTYPE_ADMIN
         raise TypeError("User must be of type pytalk.User or int")
 
-    # Subscription stuff
     def subscribe(self, user: TeamTalkUser, subscription: Subscription) -> None:
         """Subscribe to a subscription.
 
@@ -607,7 +594,6 @@ class TeamTalkInstance(sdk.TeamTalk):
 
         """
         current_subscriptions = cast("int", self._get_my_user().local_subscriptions)
-        # it's a bitfield so we can just check if the subscription is in the bitfield
         return (current_subscriptions & cast("int", subscription)) == cast(
             "int", subscription
         )
@@ -667,7 +653,6 @@ class TeamTalkInstance(sdk.TeamTalk):
         """
         if isinstance(channel, TeamTalkChannel):
             channel = channel.id
-        # variable to hold the path
         path = (sdk.TTCHAR * sdk.TT_STRLEN)()
         result = sdk._GetChannelPath(self._tt, channel, path)
         if not result:
@@ -694,9 +679,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             raise ValueError("Channel not found")
         return TeamTalkChannel(self, result)
 
-        # create a channel. Take in a name, parent channel. Optionally take in a topic,
-
-    # password and channel type
     def create_channel(
         self,
         name: str,
@@ -935,7 +917,6 @@ class TeamTalkInstance(sdk.TeamTalk):
         """
         return TeamTalkUser(self, user_id)
 
-    # user account stuff
     def create_user_account(
         self,
         username: str,
@@ -1049,7 +1030,6 @@ class TeamTalkInstance(sdk.TeamTalk):
         await asyncio.sleep(1)
         return self.user_accounts
 
-    # file stuff
     def upload_file(self, channel_id: int, filepath: str) -> None:
         """Upload a local file to a channel.
 
@@ -1092,7 +1072,6 @@ class TeamTalkInstance(sdk.TeamTalk):
         if channel_id < 0:
             raise ValueError("Channel ID must be greater than 0")
         remote_files = self.get_channel_files(channel_id)
-        # loop through files and print the name
         for file in remote_files:
             if sdk.ttstr(file.file_name) == remote_file_name:  # type: ignore [arg-type]
                 self.download_file_by_id(
@@ -1179,7 +1158,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             ValueError: If the user or channel is not found.
 
         """
-        # first check if we are kicking from channel or server
         if channel == 0:  # server
             if not self.has_permission(cast("int", Permission.KICK_USERS)):
                 raise PytalkPermissionError("You do not have permission to kick users")
@@ -1343,15 +1321,12 @@ class TeamTalkInstance(sdk.TeamTalk):
         msg = super().getMessage(100)
         event = msg.nClientEvent
 
-        # Ignore Events
         if event == sdk.ClientEvent.CLIENTEVENT_NONE:
             return
         if event == sdk.ClientEvent.CLIENTEVENT_USER_FIRSTVOICESTREAMPACKET:
             return
 
-        # My Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_MYSELF_KICKED:
-            # Set state to disconnected FIRST
             self.connected = False
             self.logged_in = False
 
@@ -1397,7 +1372,6 @@ class TeamTalkInstance(sdk.TeamTalk):
                     )
             return
 
-        # User Events
         if event == sdk.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
             user_id = msg.user.nUserID
             current_user_state = msg.user.uUserState
@@ -1488,7 +1462,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             self.bot.dispatch("user_update", TeamTalkUser(self, msg.user))
             return
 
-        # Message Event
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             message: Message | None = None
             if msg.textmessage.nMsgType == sdk.TextMsgType.MSGTYPE_USER:
@@ -1503,7 +1476,6 @@ class TeamTalkInstance(sdk.TeamTalk):
                 self.bot.dispatch("message", message)
             return
 
-        # Channel Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_CHANNEL_NEW:
             self.bot.dispatch("channel_new", TeamTalkChannel(self, msg.channel))
             return
@@ -1514,7 +1486,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             self.bot.dispatch("channel_delete", TeamTalkChannel(self, msg.channel))
             return
 
-        # File Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_FILE_NEW:
             self.bot.dispatch("file_new", RemoteFile(self, msg.remotefile))
             return
@@ -1522,7 +1493,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             self.bot.dispatch("file_delete", RemoteFile(self, msg.remotefile))
             return
 
-        # Server Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_SERVER_UPDATE:
             self.bot.dispatch("server_update", self.server)
             return
@@ -1533,7 +1503,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             )
             return
 
-        # User Account Management Events
         if event == sdk.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT_NEW:
             account = TeamTalkUserAccount(self, msg.useraccount)
             self.bot.dispatch("user_account_new", account)
@@ -1559,7 +1528,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             self.banned_users.append(banned_user)
             return
 
-        # Other Unhandled Events
         if event not in (
             sdk.ClientEvent.CLIENTEVENT_CMD_PROCESSING,
             sdk.ClientEvent.CLIENTEVENT_CMD_ERROR,
@@ -1624,7 +1592,6 @@ class TeamTalkInstance(sdk.TeamTalk):
             await asyncio.sleep(delay)
 
     async def _reconnect(self, initial_delay: float) -> None:
-        # The first delay is already handled by the caller in _process_events
         await asyncio.sleep(initial_delay)
 
         _log.info(
@@ -1633,16 +1600,11 @@ class TeamTalkInstance(sdk.TeamTalk):
             initial_delay,
         )
 
-        # Explicitly disconnect before starting the retry loop to ensure a clean state.
         _log.debug(
             "Attempting explicit disconnect for %s before reconnection loop.",
             self.server_info.host,
         )
         await self.bot.loop.run_in_executor(None, self.disconnect)
-        # Note: self.disconnect() sets self.connected = False and self.logged_in =
-        # False (if it wasn't already).
-        # This is important so that the self.connect() call in the loop starts from a
-        # known disconnected state.
         _log.info(
             "Explicit disconnect executed for %s. Proceeding to reconnection attempts.",
             self.server_info.host,
@@ -1669,8 +1631,8 @@ class TeamTalkInstance(sdk.TeamTalk):
                         "Successfully reconnected and logged in to %s.",
                         self.server_info.host,
                     )
-                    self._backoff.reset()  # Reset backoff upon successful login
-                    return  # Exit the loop and method on success
+                    self._backoff.reset()
+                    return
                 _log.warning(
                     "Login failed for %s after successful reconnect.",
                     self.server_info.host,
@@ -1689,7 +1651,7 @@ class TeamTalkInstance(sdk.TeamTalk):
                     "Max retries exceeded for reconnecting to %s. Stopping attempts.",
                     self.server_info.host,
                 )
-                return  # Exit the loop and method if max_tries is reached
+                return
 
             _log.info(
                 "Will retry reconnect to %s in %.2f seconds...",

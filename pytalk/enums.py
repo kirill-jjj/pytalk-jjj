@@ -36,7 +36,6 @@ class TeamTalkServerInfo:
         """
         return cls(data)
 
-    # convert this object to a dictionary
     def to_dict(self) -> dict[str, Any]:
         """Convert this object to a dictionary.
 
@@ -56,7 +55,6 @@ class TeamTalkServerInfo:
             "join_channel_password": self.join_channel_password,
         }
 
-    # compare this object to another object
     def __eq__(self, other: object) -> bool:
         """Compare this object to another object.
 
@@ -78,7 +76,6 @@ class TeamTalkServerInfo:
             and self.encrypted == other.encrypted
         )
 
-    # compare this object to another object
     def __ne__(self, other: object) -> bool:
         """Compare this object to another object.
 
