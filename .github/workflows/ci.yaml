@@ -82,8 +82,11 @@ jobs:
         with:
           python-version: "3.9"   # wheel is Py‑version‑agnostic
 
+      - name: Install pipx
+        run: pip install pipx
+
       - name: Install hatch
-        run: pip install hatch
+        run: pipx install hatch
 
       - name: Configure hatch cache
         run: |
