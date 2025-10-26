@@ -29,10 +29,7 @@ class Message:
         self.type = msg.nMsgType
         self.from_id = msg.nFromUserID
         self.to_id = msg.nToUserID
-        self.content = msg.szMessage
-        # if content is a byte array, decode it
-        if isinstance(self.content, bytes):
-            self.content = self.content.decode("utf-8")
+        self.content = sdk.ttstr(msg.szMessage)
         self.user = self.teamtalk_instance.get_user(self.from_id)
 
     def reply(self, content: str, **kwargs: object) -> None:

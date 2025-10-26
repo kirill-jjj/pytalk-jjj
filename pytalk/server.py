@@ -388,7 +388,10 @@ class ServerProperties(metaclass=_ServerPropertiesMeta):
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self.properties, name)
+        value = _get_tt_obj_attribute(self.properties, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value
 
     def __setattr__(self, name: str, value: object) -> None:
         """Try to set the specified attribute on properties.

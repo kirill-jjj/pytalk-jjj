@@ -675,7 +675,7 @@ class TeamTalkInstance(sdk.TeamTalk):
             raise ValueError("Channel not found")
         if sys.platform == "win32":
             return path.value
-        return cast("bytes", path.value).decode("utf-8")
+        return sdk.ttstr(path.value)
 
     def get_channel_from_path(self, path: str) -> TeamTalkChannel:
         """Get a channel by its path.

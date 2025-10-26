@@ -5,7 +5,7 @@ represents a user account,
 while the User class represents a user that is currently connected to the server.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._utils import _get_tt_obj_attribute
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
@@ -54,7 +54,10 @@ class UserAccount:
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self._account, name)
+        value = _get_tt_obj_attribute(self._account, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value
 
 
 # make a subclass of UserAccount for a banned user

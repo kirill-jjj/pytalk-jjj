@@ -180,4 +180,7 @@ class User:
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self._user, name)
+        value = _get_tt_obj_attribute(self._user, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value

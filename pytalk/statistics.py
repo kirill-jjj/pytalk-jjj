@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._utils import _get_tt_obj_attribute
+from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 if TYPE_CHECKING:
-    from .implementation.TeamTalkPy import TeamTalk5 as sdk
     from .instance import TeamTalkInstance
 
 
@@ -44,7 +44,10 @@ class Statistics:
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self._statistics, name)
+        value = _get_tt_obj_attribute(self._statistics, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value
 
     def refresh(self) -> None:
         """Refresh the server statistics."""
