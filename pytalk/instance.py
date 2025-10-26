@@ -93,7 +93,6 @@ class TeamTalkInstance(sdk.TeamTalk):
                 Defaults to `None` (using default Backoff settings).
 
         """
-        # Call the super class's __init__ method directly
         super().__init__()
         # set the bot
         self.bot = bot
@@ -1306,7 +1305,7 @@ class TeamTalkInstance(sdk.TeamTalk):
         result, msg = _wait_for_event(
             self,
             cast("sdk.ClientEvent", sdk.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS),
-            timeout * 1000,  # Convert seconds to milliseconds
+            timeout * 1000,
         )
         if not result:
             raise TimeoutError("The request for server statistics timed out.")

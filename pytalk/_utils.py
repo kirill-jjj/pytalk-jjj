@@ -70,7 +70,6 @@ def _get_abs_time_diff(t1: float, t2: float) -> int:
 def _get_tt_obj_attribute(obj: object, attr: str) -> object:
     name = ""
     for name_part in attr.split("_"):
-        # Handle specific acronyms
         if name_part.lower() == "id":
             name += "ID"
         elif name_part.lower() == "tx":
@@ -79,20 +78,16 @@ def _get_tt_obj_attribute(obj: object, attr: str) -> object:
             name += "RX"
         elif name_part.lower() == "msec":
             name += "MSec"
-        # Preserve existing uppercase parts
         elif name_part.isupper():
             name += name_part
-        # Capitalize other parts
         else:
             name += name_part.capitalize()
-    # Try with prefixes
     prefixes = ["n", "sz", "b", "u"]
     for prefix in prefixes:
         try:
             return getattr(obj, f"{prefix}{name}")
         except AttributeError:
             pass
-    # Try with lowercase first letter
     try:
         return getattr(obj, f"{name[0].lower()}{name[1:]}")
     except AttributeError:
