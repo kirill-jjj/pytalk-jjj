@@ -4,6 +4,8 @@
 > **1. Focus on User Intent:** The AI agent's primary goal is to assist the user effectively. This requires careful analysis of user requests to ensure the agent's actions align with the user's specific intent, even if it requires deviation from a standard documented workflow.
 >
 > **2. Proactive Research and Problem-Solving:** The agent is expected to be a proactive problem-solver. When faced with questions, errors, or tasks that require knowledge not present in the immediate context (e.g., unfamiliar library usage, new API documentation, troubleshooting obscure errors), the agent must utilize its available tools and protocols. This includes performing web searches to consult official documentation and forums, as well as leveraging standards like **MCP (Model Context Protocol)** where applicable to interact with tools and gather context. The goal is to resolve ambiguities and acquire necessary knowledge independently.
+>
+> **3. Tool Preference and Persistence for File Manipulation:** When modifying file content or creating/deleting temporary files, the agent must prioritize the use of dedicated file manipulation tools (`write_file`, `replace`). If an operation with these tools initially fails, the agent should make a maximal effort to resolve the issue and succeed with the preferred tools. Only if these tools prove insufficient after exhaustive attempts, and *only upon explicit user request*, should alternative methods (e.g., shell commands like `echo`, `rm`, `del`) be considered for file operations.
 
 ---
 
