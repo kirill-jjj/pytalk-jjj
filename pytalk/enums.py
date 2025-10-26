@@ -14,8 +14,8 @@ class TeamTalkServerInfo:
 
         """
         self.host = data.get("host")
-        self.tcp_port = data.get("tcp_port")
-        self.udp_port = data.get("udp_port")
+        self.tcp_port = data.get("tcp_port", 0)
+        self.udp_port = data.get("udp_port", 0)
         self.username = data.get("username")
         self.password = data.get("password", "")
         self.encrypted = data.get("encrypted", False)
@@ -206,32 +206,17 @@ class Status:
 
     @classmethod
     def online(cls) -> _StatusBuilder:
-        """Sets the user status to 'online'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'online'."""
         return cls._StatusBuilder(UserStatusMode.ONLINE)
 
     @classmethod
     def away(cls) -> _StatusBuilder:
-        """Sets the user status to 'away'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'away'."""
         return cls._StatusBuilder(UserStatusMode.AWAY)
 
     @classmethod
     def question(cls) -> _StatusBuilder:
-        """Sets the user status to 'question'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'question'."""
         return cls._StatusBuilder(UserStatusMode.QUESTION)
 
 

@@ -10,11 +10,7 @@ import logging
 import sys
 import types
 from collections.abc import Callable, Coroutine
-from typing import (
-    Any,
-    Self,
-    TypeVar,
-)
+from typing import Any, Self, TypeVar
 
 if sys.platform.startswith("linux"):
     import uvloop
@@ -55,14 +51,14 @@ class TeamTalkBot:
         # hold a list of TeamTalk instances
         self.teamtalks: list[TeamTalkInstance] = []
         self._listeners: dict[
-            str, list[tuple[asyncio.Future, Callable[..., bool]]]
+            str, list[tuple[asyncio.Future[Any], Callable[..., bool]]]
         ] = {}
 
     async def add_server(
         self,
-        server: TeamTalkServerInfo | dict,
+        server: TeamTalkServerInfo | dict[str, Any],
         reconnect: bool = True,
-        backoff_config: dict | None = None,
+        backoff_config: dict[str, Any] | None = None,
     ) -> None:
         """Add a server to the bot.
 
@@ -212,7 +208,7 @@ class TeamTalkBot:
         event_name: str,
         *args: object,
         **kwargs: object,
-    ) -> asyncio.Task:
+    ) -> asyncio.Task[Any]:
         # print all the events to log
         wrapped = self._run_event(coro, event_name, *args, **kwargs)
         # Schedules the task
@@ -307,6 +303,6 @@ class TeamTalkBot:
                 teamtalk.disconnect()
                 self.dispatch("my_disconnect", teamtalk.server)
 
-    async def _do_after_delay(self, delay: float, func: Callable) -> None:  # noqa: ARG002
+    async def _do_after_delay(self, delay: float, func: Callable[..., Any]) -> None:  # noqa: ARG002
         await asyncio.sleep(delay)
         print("WORKS")

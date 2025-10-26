@@ -1,7 +1,7 @@
 """Module defines a User class that represents a user on a TeamTalk server."""
 
 # Union type
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._utils import _get_tt_obj_attribute
 
@@ -11,6 +11,8 @@ from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 if TYPE_CHECKING:
     from .instance import TeamTalkInstance
+
+from .subscription import Subscription
 
 
 class User:
@@ -39,10 +41,10 @@ class User:
         self.teamtalk_instance = teamtalk_instance
         # if user is str, assume it's a username
         if isinstance(user, str):
-            self._user = self.teamtalk_instance.super.getUserByUsername(sdk.ttstr(user))
+            self._user = self.teamtalk_instance.getUserByUsername(sdk.ttstr(user))  # type: ignore [arg-type]
         # if user is int, assume it's a user_id
         elif isinstance(user, int):
-            self._user = self.teamtalk_instance.super.getUser(user)
+            self._user = self.teamtalk_instance.getUser(user)
         # if the user argument is already of type sdk.User, just set it to self._user
         elif isinstance(user, sdk.User):
             self._user = user
@@ -55,6 +57,11 @@ class User:
         self.channel = self.teamtalk_instance.get_channel(self._user.nChannelID)
         self.server = self.channel.server
 
+    @property
+    def user_id(self) -> int:
+        """Get the user ID."""
+        return cast("int", _get_tt_obj_attribute(self._user, "user_id"))
+
     def is_me(self) -> bool:
         """Check if this user is the bot itself.
 
@@ -62,9 +69,9 @@ class User:
             True if this user is the bot itself, False otherwise.
 
         """
-        return self.user_id == self.teamtalk_instance.getMyUserID()
+        return cast("bool", self.user_id == self.teamtalk_instance.getMyUserID())
 
-    def send_message(self, content: str, **kwargs) -> int:  # noqa: ANN003
+    def send_message(self, content: str, **kwargs: object) -> None:  # noqa: ANN003
         """Send a text message to this user.
 
         Args:
@@ -84,9 +91,9 @@ class User:
         msg.szMessage = content
         msg.bMore = False
         # get a pointer to our message
-        return self.teamtalk_instance._send_message(msg, **kwargs)
+        self.teamtalk_instance._send_message(msg, **kwargs)
 
-    def move(self, channel: "TeamTalkChannel") -> bool:
+    def move(self, channel: "TeamTalkChannel") -> None:
         """Move this user to the specified channel.
 
         Args:
@@ -96,7 +103,7 @@ class User:
             True if the user was moved successfully, False otherwise.
 
         """
-        return self.server.move_user(self, channel)
+        self.server.move_user(self, channel)
 
     def kick(self, from_server: bool) -> None:
         """Kicks this user from the server.
@@ -124,7 +131,7 @@ class User:
             channel_id = self.channel.id
         self.teamtalk_instance.ban_user(self, channel_id)
 
-    def subscribe(self, subscription: object) -> None:
+    def subscribe(self, subscription: Subscription) -> None:
         """Subscribe to the specified subscription.
 
         Args:
@@ -133,7 +140,7 @@ class User:
         """
         self.teamtalk_instance.subscribe(self, subscription)
 
-    def unsubscribe(self, subscription: object) -> None:
+    def unsubscribe(self, subscription: Subscription) -> None:
         """Unsubscribes from the specified subscription.
 
         Args:
@@ -142,7 +149,7 @@ class User:
         """
         self.teamtalk_instance.unsubscribe(self, subscription)
 
-    def is_subscribed(self, subscription: object) -> bool:
+    def is_subscribed(self, subscription: Subscription) -> bool:
         """Check if this user is subscribed to the specified subscription.
 
         Args:
@@ -153,7 +160,7 @@ class User:
             user, False otherwise.
 
         """
-        return self.teamtalk_instance.is_subscribed(self, subscription)
+        return self.teamtalk_instance.is_subscribed(subscription)
 
     def __getattr__(self, name: str) -> object:
         """Try to get the specified attribute from self._user if it is not found in

@@ -122,7 +122,7 @@ class Streamer:
         self.channels = channels
         self.block_size = block_size
         # the list of blocks that will be streamed
-        self.blocks = []
+        self.blocks: list[bytes] = []
         self.current_data = b""
         # streamer id
         self.stream_id = random.randint(6000, 6999)  # noqa: S311
@@ -133,7 +133,7 @@ class Streamer:
         self.running = True
         self._streamer_thread = threading.Thread(target=self._do_stream, daemon=True)
         self._streamer_thread.start()
-        self._current_streamer_thread = None
+        self._current_streamer_thread: threading.Thread | None = None
         self._current_streamer_running = False
         self._stream_lock = (
             threading.Lock()
@@ -186,7 +186,7 @@ class Streamer:
         self._request_stop_stream()  # Gracefully request the current stream to stop.
         self._wait_for_cleanup()  # Wait for the cleanup to complete.
 
-    def stream(self, path: str) -> int:
+    def stream(self, path: str) -> None:
         """Streams a file or an url to the channel.
 
         Args:
@@ -218,9 +218,10 @@ class Streamer:
         self._current_streamer_thread = threading.Thread(
             target=self._stream, args=(path,), daemon=True
         )
-        self._current_streamer_thread.start()
+        if self._current_streamer_thread:
+            self._current_streamer_thread.start()
 
-    def _stream(self, path: str) -> int:
+    def _stream(self, path: str) -> None:
         if not self.ffmpeg_available:
             raise RuntimeError(
                 "Could not convert file to wav. ffmpeg is not installed."
@@ -251,11 +252,12 @@ class Streamer:
             ]
             ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
         try:
-            while self._current_streamer_running:
-                block = ffmpeg_process.stdout.read(self.block_size)
-                if len(block) == 0:
-                    break
-                self.feed(block)
+            if ffmpeg_process.stdout:
+                while self._current_streamer_running:
+                    block = ffmpeg_process.stdout.read(self.block_size)
+                    if len(block) == 0:
+                        break
+                    self.feed(block)
         except KeyboardInterrupt:
             raise
         finally:
@@ -308,7 +310,7 @@ class Streamer:
         sdk._GetSoundInputPreprocessEx(
             self.channel.server.teamtalk_instance._tt, pre_processor
         )
-        return pre_processor.u.ttpreprocessor.bMuteLeft.value
+        return bool(pre_processor.u.ttpreprocessor.bMuteLeft.value)
 
     @mute_left.setter
     def mute_left(self, mute: bool) -> None:
@@ -339,7 +341,7 @@ class Streamer:
         sdk._GetSoundInputPreprocessEx(
             self.channel.server.teamtalk_instance._tt, pre_processor
         )
-        return pre_processor.u.ttpreprocessor.bMuteRight.value
+        return bool(pre_processor.u.ttpreprocessor.bMuteRight.value)
 
     @mute_right.setter
     def mute_right(self, mute: bool) -> None:
@@ -358,7 +360,9 @@ class Streamer:
             self.channel.server.teamtalk_instance._tt, pre_processor
         )
 
-    def _get_url_data(self, url: str) -> tuple[subprocess.Popen, subprocess.Popen]:
+    def _get_url_data(
+        self, url: str
+    ) -> tuple[subprocess.Popen[bytes], subprocess.Popen[bytes]]:
         yt_dlp_command = [
             "yt-dlp",
             "-f",
@@ -401,7 +405,7 @@ class Streamer:
             yt_dlp_process,
         )
 
-    def _graceful_shutdown(self, process: subprocess.Popen) -> None:
+    def _graceful_shutdown(self, process: subprocess.Popen[bytes]) -> None:
         if process:
             process.terminate()  # Send SIGTERM
             try:

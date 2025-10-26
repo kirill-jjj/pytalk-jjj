@@ -22,7 +22,7 @@ class SoundDevice:
         self._device_struct = device_struct
         self._is_default_input = is_default_input
 
-    def __getattr__(self, name: str) -> Any:  # noqa: DAR101, DAR401, ANN401
+    def __getattr__(self, name: str) -> object:
         """Get an attribute from the underlying SDK structure.
 
         Args:
@@ -49,7 +49,7 @@ class SoundDevice:
                 f"'{type(self).__name__}' object has no attribute '{name}'"
             ) from None
 
-    @property  # noqa: DAR201
+    @property
     def id(self) -> int:
         """Gets the ID of the device.
 
@@ -59,7 +59,7 @@ class SoundDevice:
         """
         return cast("int", self.device_id)
 
-    @property  # noqa: DAR201
+    @property
     def name(self) -> str:
         """Gets the name of the device.
 
@@ -69,7 +69,7 @@ class SoundDevice:
         """
         return cast("str", self.device_name)
 
-    @property  # noqa: DAR201
+    @property
     def sound_system(self) -> int:
         """Gets the sound system ID (e.g., WASAPI, ALSA).
 
@@ -77,9 +77,9 @@ class SoundDevice:
             The integer ID of the sound system.
 
         """
-        return cast("int", self.sound_system)
+        return self.sound_system
 
-    @property  # noqa: DAR201
+    @property
     def is_input(self) -> bool:
         """Returns True if this is an input device.
 
@@ -92,7 +92,7 @@ class SoundDevice:
         except AttributeError:
             return False
 
-    @property  # noqa: DAR201
+    @property
     def is_output(self) -> bool:
         """Returns True if this is an output device.
 
@@ -105,7 +105,7 @@ class SoundDevice:
         except AttributeError:
             return False
 
-    @property  # noqa: DAR201
+    @property
     def is_default_input(self) -> bool:
         """Returns True if this is the default system input device.
 
@@ -115,7 +115,7 @@ class SoundDevice:
         """
         return self._is_default_input
 
-    def __repr__(self) -> str:  # noqa: DAR201
+    def __repr__(self) -> str:
         """Return a developer-friendly string representation of the device.
 
         Returns:

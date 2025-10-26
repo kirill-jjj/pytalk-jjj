@@ -21,7 +21,7 @@ def _wait_for_event(
     end = timestamp() + timeout
     while msg.nClientEvent != event:
         if timestamp() >= end:
-            return False, cast("Any", sdk.TTMessage())  # type: ignore
+            return False, cast("Any", sdk.TTMessage())
         msg = ttclient.getMessage(timeout)
 
     return True, msg
@@ -40,7 +40,7 @@ def _wait_for_cmd_success(
         if result and msg.nSource == cmdid:
             return result, msg
 
-    return False, cast("Any", sdk.TTMessage())  # type: ignore
+    return False, cast("Any", sdk.TTMessage())
 
 
 def _wait_for_cmd(
@@ -58,7 +58,7 @@ def _wait_for_cmd(
         ):
             return True, msg
         if timestamp() >= end:
-            return False, cast("Any", sdk.TTMessage())  # type: ignore
+            return False, sdk.TTMessage()
 
 
 def _get_abs_time_diff(t1: float, t2: float) -> int:

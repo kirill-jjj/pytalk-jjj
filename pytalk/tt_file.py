@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 
 from ._utils import _get_tt_obj_attribute
+from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 if TYPE_CHECKING:
     from .instance import TeamTalkInstance
@@ -11,7 +12,9 @@ if TYPE_CHECKING:
 class RemoteFile:
     """Represents a file on a TeamTalk server. Should not be instantiated directly."""
 
-    def __init__(self, teamtalk_instance: "TeamTalkInstance", payload: object) -> None:
+    def __init__(
+        self, teamtalk_instance: "TeamTalkInstance", payload: sdk.RemoteFile
+    ) -> None:
         """Initialize the RemoteFile instance.
 
         Args:

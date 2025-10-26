@@ -48,4 +48,4 @@ class Statistics:
 
     def refresh(self) -> None:
         """Refresh the server statistics."""
-        self._statistics = self.teamtalk.get_server_statistics()._statistics
+        self._statistics = self.teamtalk.get_server_statistics(timeout=2)._statistics

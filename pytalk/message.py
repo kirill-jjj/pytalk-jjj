@@ -1,6 +1,6 @@
 """Module contains the Message class and its subclasses."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from .exceptions import PytalkPermissionError
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
@@ -35,7 +35,7 @@ class Message:
             self.content = self.content.decode("utf-8")
         self.user = self.teamtalk_instance.get_user(self.from_id)
 
-    def reply(self, content: str, **kwargs: object) -> int:
+    def reply(self, content: str, **kwargs: object) -> None:
         """Reply to the message.
 
         The reply will be sent to the place where the message was sent from.
@@ -60,12 +60,12 @@ class Message:
         """
         msg = sdk.TextMessage()
         msg.nMsgType = self.type
-        msg.nFromUserID = self.teamtalk_instance.super.getMyUserID()
-        msg.szFromUsername = self.teamtalk_instance.super.getMyUserAccount().szUsername
+        msg.nFromUserID = self.teamtalk_instance.getMyUserID()
+        msg.szFromUsername = self.teamtalk_instance.getMyUserAccount().szUsername
         # if self is channel message, then reply to channel
         if isinstance(self, ChannelMessage):
             if (
-                self.teamtalk_instance.super.getMyChannelID() != self.to_id
+                self.teamtalk_instance.getMyChannelID() != self.to_id
                 and not self.teamtalk_instance.is_admin()
             ):
                 raise PytalkPermissionError(
@@ -82,9 +82,9 @@ class Message:
             msg.nChannelID = 0
         else:
             msg.nToUserID = self.from_id
-        msg.szMessage = sdk.ttstr(content)
+        msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        return self.teamtalk_instance._send_message(msg, **kwargs)
+        self.teamtalk_instance._send_message(msg, **kwargs)
 
     def is_me(self) -> bool:
         """Check if the message was sent by the bot.
@@ -93,7 +93,7 @@ class Message:
             True if the message was sent by the bot, False otherwise.
 
         """
-        return self.from_id == self.teamtalk_instance.super.getMyUserID()
+        return cast("bool", self.from_id == self.teamtalk_instance.getMyUserID())
 
     def __str__(self) -> str:
         """Return a string representation of the message.

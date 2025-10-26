@@ -75,11 +75,16 @@ exclude = [
     "pytalk/implementation/__init__.py",
     "example.py",
 ]
+disable_error_code = ["no-untyped-call"]
 
 
 [[tool.mypy.overrides]]
 module = "pytalk.implementation.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "patoolib.*"
+ignore_missing_imports = true
 
 [dependency-groups]
 dev = [

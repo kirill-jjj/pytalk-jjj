@@ -37,8 +37,22 @@ Changed
   **Action Required**: Update all calls to these attributes by appending `()` to them. For example, change `Status.online.male` to `Status.online().male`.
 - Conditional import and installation of `uvloop` for Linux platforms to prevent `ModuleNotFoundError` on non-Linux systems.
 
+Improved
+~~~~~~~~
+- Replaced all instances of `self.super` with the standard `super()` for better consistency and correctness.
+- Enhanced static analysis and code readability by adding and improving type hints for numerous variables, function arguments, and return values.
+- Improved type safety by replacing `typing.Any` with more specific types where possible.
+- Refactored `__getattr__` methods in `pytalk.channel.ChannelType` and `pytalk.user.User` to be more type-safe.
+
 Fixed
 ~~~~~
+- Fixed the `doPing` method in `pytalk.Server` which was using an incorrect attribute, causing it to fail.
+- Corrected a logic error in `pytalk.TeamTalkInstance.set_input_device` that would always raise a `ValueError`.
+- Fixed the default value for the `channel_type` argument in `pytalk.TeamTalkInstance.create_channel`.
+- Changed the return type of `kick_user` and `ban_user` methods in `pytalk.TeamTalkInstance` from `None` to `bool` to reflect their behavior.
+- Corrected the implementation of `move_user` in `pytalk.TeamTalkInstance`.
+- Fixed the signature of the `unban_user` method in `pytalk.Server` to correctly accept an `ip` string.
+- Resolved various `mypy` errors, improving overall type safety.
 - Resolved various Ruff linting errors (TC001, RET504, A002, E501, S602, S607, ARG002, ANN401, ANN003).
 - Ensured all pre-commit hooks pass.
 - Corrected trailing newline in `pyproject.toml`.

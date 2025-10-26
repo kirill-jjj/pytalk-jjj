@@ -19,3 +19,11 @@ repos:
     hooks:
     -   id: ruff
     -   id: ruff-format
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+    -   id: mypy
+        args: [--config-file=./pyproject.toml]
+        additional_dependencies: [types-requests, types-beautifulsoup4]
+        files: ^pytalk/.*\.py$
