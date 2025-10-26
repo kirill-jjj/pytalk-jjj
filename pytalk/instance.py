@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import ctypes
 import logging
+import sys
 import threading
 import time
 from pathlib import Path
@@ -668,10 +669,12 @@ class TeamTalkInstance(sdk.TeamTalk):
         if isinstance(channel, TeamTalkChannel):
             channel = channel.id
         # variable to hold the path
-        path = sdk.TTCHAR()
-        result = sdk._GetChannelPath(self, channel, path)
+        path = (sdk.TTCHAR * sdk.TT_STRLEN)()
+        result = sdk._GetChannelPath(self._tt, channel, path)
         if not result:
             raise ValueError("Channel not found")
+        if sys.platform == "win32":
+            return path.value
         return cast("bytes", path.value).decode("utf-8")
 
     def get_channel_from_path(self, path: str) -> TeamTalkChannel:
