@@ -88,6 +88,12 @@ jobs:
       - name: Install hatch
         run: pipx install hatch
 
+      - name: Ensure pipx apps are in PATH
+        run: pipx ensurepath
+
+      - name: Ensure pipx apps are in PATH
+        run: pipx ensurepath
+
       - name: Configure hatch cache
         run: |
           echo "HATCH_CACHE_DIR=$(hatch config find | grep -oP '(?<=\"cache\": \")[^\"]+')" >> $GITHUB_ENV
