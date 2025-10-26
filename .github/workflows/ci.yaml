@@ -32,31 +32,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpulse0
 
-      - name: Set up Python
-        id: setup-python
+      - name: Set up Python and cache Hatch environments
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'hatch'
 
-      - name: Install pipx
-        run: pip install pipx
-
-      - name: Ensure pipx apps are in PATH
-        run: python -m pipx ensurepath
-
-      - name: Install hatch
-        run: pipx install hatch
-
-      - name: Configure hatch cache
-        run: echo "HATCH_CACHE_DIR=$(python -c "import json, subprocess; print(json.loads(subprocess.check_output(['hatch', 'config', 'find']))['cache'])")" >> $GITHUB_ENV
-
-      - name: Cache hatch environments
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.HATCH_CACHE_DIR }}
-          key: hatch-env-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            hatch-env-${{ runner.os }}-${{ matrix.python-version }}-
+      - name: Install Hatch
+        uses: pypa/hatch@install
 
       - name: Install dependencies
         run: hatch env create
@@ -83,31 +66,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        id: setup-python
+      - name: Set up Python and cache Hatch environments
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
+          cache: 'hatch'
 
-      - name: Install pipx
-        run: pip install pipx
-
-      - name: Ensure pipx apps are in PATH
-        run: python -m pipx ensurepath
-
-      - name: Install hatch
-        run: pipx install hatch
-
-      - name: Configure hatch cache
-        run: echo "HATCH_CACHE_DIR=$(python -c "import json, subprocess; print(json.loads(subprocess.check_output(['hatch', 'config', 'find']))['cache'])")" >> $GITHUB_ENV
-
-      - name: Cache hatch environments
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.HATCH_CACHE_DIR }}
-          key: hatch-env-${{ runner.os }}-3.9-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            hatch-env-${{ runner.os }}-3.9-
+      - name: Install Hatch
+        uses: pypa/hatch@install
 
       - name: Build wheel
         run: hatch build
