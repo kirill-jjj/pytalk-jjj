@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "py-talk-ex"
-version = "1.6.2"
+dynamic = ["version"]
 description = "a simple but powerful pythonic library for making bots for the TeamTalk5 Conferencing System"
 readme = "README.md"
 requires-python = ">=3.11"
