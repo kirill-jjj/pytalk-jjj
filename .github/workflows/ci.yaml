@@ -37,6 +37,24 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache Hatch environments (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/hatch
+          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
+
+      - name: Cache Hatch environments (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\hatch
+          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
+
       - name: Install Hatch
         uses: pypa/hatch@install
 
@@ -111,4 +129,4 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          verbose: true
+          verbose: true```
