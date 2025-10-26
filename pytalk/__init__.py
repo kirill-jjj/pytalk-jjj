@@ -1,18 +1,13 @@
 __version__ = "2.0.0"
 
-# if the implementation can't be found. Try to download it
-# from the internet and install it.
 
-# first add our to be implementation/TeamTalk_DLL to the path
 import os
 import sys
 
 from ctypes import *
 
-# if we are on linux we do a little hack for the LD_LIBRARY_PATH
 try:
     if sys.platform.startswith("linux"):
-        # get the full path to the implementation/TeamTalk_DLL folder
         libpath = os.path.join(
             os.path.dirname(__file__),
             "implementation",
@@ -26,7 +21,6 @@ except:
 
     download_sdk()
     if sys.platform.startswith("linux"):
-        # get the full path to the implementation/TeamTalk_DLL folder
         libpath = os.path.join(
             os.path.dirname(__file__),
             "implementation",

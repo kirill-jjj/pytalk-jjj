@@ -46,10 +46,8 @@ def download() -> None:
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
     }
     r = requests.get(url, headers=headers)
-    # check status code
     r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")
-    # The last tested version series is v5.15x
     versions = page.find_all("li")
     version = [i for i in versions if VERSION_IDENTIFIER in i.text][-1].a.get("href")[
         0:-1
@@ -96,7 +94,6 @@ def move() -> None:
                 os.path.join(path, "Library", library),
                 os.path.join(cd, "implementation", library),
             )
-        # if a __init__ file already exists in our implementation folder, delete it and make anew one
         try:
             os.remove(os.path.join(cd, "implementation", "__init__.py"))
         except OSError:
@@ -135,7 +132,6 @@ def install() -> None:
         sys.exit(1)
     print("Extracted. moving")
     move()
-    # check if the move was successful
     if not os.path.exists(os.path.join(cd, "implementation", "TeamTalk_DLL")):
         print("Failed to move TeamTalk_DLL")
         sys.exit(1)

@@ -21,7 +21,6 @@ Example:
                         output = True)
                 stream = streams[block.user.id]
                 stream.write(block.data) # Play the audio data.
-                # for more information, see the AudioBlock class
 
 
                 See the :doc:`event Reference </events>` for more information and a

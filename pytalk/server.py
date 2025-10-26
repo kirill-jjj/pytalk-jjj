@@ -72,7 +72,6 @@ class Server:
         msg.nToUserID = 0
         msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        # get a pointer to our message
         return self.teamtalk_instance._send_message(msg, **kwargs)
 
     def ping(self) -> bool:
@@ -285,7 +284,6 @@ class Server:
             raise PytalkPermissionError(
                 "The bot does not have permission to update the server properties"
             )
-        # get the underlying properties object
         result = sdk._DoUpdateServer(
             self.teamtalk_instance._tt,
             ctypes.byref(cast("sdk.ServerProperties", properties.properties)),
@@ -408,5 +406,4 @@ class ServerProperties(metaclass=_ServerPropertiesMeta):
             self.__dict__[name] = value
         else:
             _get_tt_obj_attribute(self.properties, name)
-            # if we have gotten here, we can set the attribute
             _set_tt_obj_attribute(self.properties, name, value)

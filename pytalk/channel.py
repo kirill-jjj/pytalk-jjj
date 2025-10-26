@@ -28,12 +28,10 @@ class Channel:
 
         """
         self.teamtalk = teamtalk
-        # if the channel_id is a int, set it to the channel_id
         if isinstance(channel, int):
             self.id = channel
             self._channel, self.path = self.teamtalk._get_channel_info(self.id)
 
-        # if the channel is a sdk.Channel, set it to self._channel
         elif isinstance(channel, sdk.Channel):
             self._channel = channel
             self.id = channel.nChannelID
@@ -100,9 +98,6 @@ class Channel:
             PytalkPermissionError: If the bot is not in the channel and is not an admin.
 
         """
-        # get the bots current channel id with getMyChannelID
-        # if the bots current channel id is not the same as the channel id we are
-        # trying to send a message to, return
         if self.teamtalk.getMyChannelID() != self.id and not self.teamtalk.is_admin():
             raise PytalkPermissionError(
                 "Missing permission to send message to a channel the bot is not in"
@@ -114,7 +109,6 @@ class Channel:
         msg.nChannelID = self.id
         msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        # get a pointer to our message
         self.teamtalk._send_message(msg, **kwargs)
 
     def upload_file(self, filepath: str) -> None:
@@ -235,7 +229,6 @@ class Channel:
             self.__dict__[name] = value
         else:
             _get_tt_obj_attribute(self._channel, name)
-            # if we have gotten here, we can set the attribute
             _set_tt_obj_attribute(self._channel, name, value)
 
 
