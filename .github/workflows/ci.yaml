@@ -1,10 +1,9 @@
 name: Continuous Integration
 
 on:
-  # Run tests for every push and PR
   push:
-    branches: ["**"]      # any branch
-    tags:     ["v*"]      # version tags like v1.2.3
+    branches: ["**"]
+    tags:     ["v*"]
   pull_request:
 
 defaults:
@@ -16,9 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  #################################################################
-  # 1. TEST SUITE
-  #################################################################
   test:
     strategy:
       fail-fast: false
@@ -42,9 +38,26 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install pipx
+        run: pip install pipx
+
+      - name: Ensure pipx apps are in PATH
+        run: python -m pipx ensurepath
+
+      - name: Install hatch
+        run: pipx install hatch
+
       - name: Configure hatch cache
         run: |
           echo "HATCH_CACHE_DIR=$(hatch config find | grep -oP '(?<=\"cache\": \")[^\"]+')" >> $GITHUB_ENV
+
+      - name: Cache hatch environments
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HATCH_CACHE_DIR }}
+          key: hatch-env-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            hatch-env-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: hatch env create
@@ -64,11 +77,6 @@ jobs:
       - name: Install pre-commit hooks
         run: hatch run dev:hooks
 
-
-
-  #################################################################
-  # 2. BUILD WHEEL (non–OS‑specific wheel, any single Python version)
-  #################################################################
   builder_pytalk:
     needs: [test]
     runs-on: ubuntu-latest
@@ -80,19 +88,16 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"   # wheel is Py‑version‑agnostic
+          python-version: "3.9"
 
       - name: Install pipx
         run: pip install pipx
 
+      - name: Ensure pipx apps are in PATH
+        run: python -m pipx ensurepath
+
       - name: Install hatch
         run: pipx install hatch
-
-      - name: Ensure pipx apps are in PATH
-        run: pipx ensurepath
-
-      - name: Ensure pipx apps are in PATH
-        run: pipx ensurepath
 
       - name: Configure hatch cache
         run: |
@@ -106,9 +111,6 @@ jobs:
           restore-keys: |
             hatch-env-${{ runner.os }}-3.9-
 
-      - name: Install dependencies
-        run: hatch env create
-
       - name: Build wheel
         run: hatch build
 
@@ -119,26 +121,17 @@ jobs:
           path: dist/
           retention-days: 1
 
-
-
-  #################################################################
-  # 3. PUBLISH TO PyPI (only on version tags *already merged* to master)
-  #################################################################
   publisher_release:
     needs: [builder_pytalk]
-
-    # Run only on tag push events whose ref starts with refs/tags/v…
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # for trusted publishing
+      id-token: write
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # Ensure the tag’s commit is contained in the current master branch.
-      # If not, exit with status 1 to abort the job.
       - name: Verify tag commit is on master
         run: |
           git fetch origin master
