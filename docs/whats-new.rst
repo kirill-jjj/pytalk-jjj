@@ -21,45 +21,45 @@ This document holds a human-readable list of changes between releases.
 
 Breaking Changes & Important Notices
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- **`TeamTalkServerInfo` constructor now requires a dictionary argument**: The `pytalk.enums.TeamTalkServerInfo` class constructor now exclusively accepts a single dictionary argument for server configuration. Direct instantiation with individual keyword arguments (e.g., `host='...'`, `tcp_port=...`) is no longer supported.
-  **Action Required**: Update all instantiations of `TeamTalkServerInfo` to pass a dictionary containing the server details. For example, change `TeamTalkServerInfo(host='...', tcp_port=...)` to `TeamTalkServerInfo({'host': '...', 'tcp_port': ...})`.
-- **Exceptions `TeamTalkException` and `PermissionError` renamed**: `TeamTalkException` has been renamed to `TeamTalkError`, and `PermissionError` (if previously used from `pytalk`) has been renamed to `PytalkPermissionError`.
-  **Action Required**: Update all references to these exception classes in your code.
-
+- **`TeamTalkServerInfo`**: The constructor now accepts only a single dictionary argument.
+- **Exceptions**: `TeamTalkException` has been renamed to `TeamTalkError`, and `PermissionError` has been renamed to `PytalkPermissionError`.
 
 Added
 ~~~~~
-- **Hashability to `TeamTalkServerInfo` objects**: `TeamTalkServerInfo` objects can now be used as dictionary keys or set elements, which can be useful for managing multiple connections.
+- **`TeamTalkServerInfo`**: Added hashability to `TeamTalkServerInfo` objects.
 
 Changed
 ~~~~~~~
-- **`pytalk.enums.Status` methods are now class methods**: The `online`, `away`, `question`, `male`, `female`, and `neutral` attributes of the `pytalk.enums.Status` class are now class methods instead of class properties. This change was made to improve type hinting and consistency.
-  **Action Required**: Update all calls to these attributes by appending `()` to them. For example, change `Status.online.male` to `Status.online().male`.
-- Conditional import and installation of `uvloop` for Linux platforms to prevent `ModuleNotFoundError` on non-Linux systems.
+- **`pytalk.enums.Status`**: The `online`, `away`, etc., attributes are now class methods (e.g., `Status.online()`).
 
 Improved
 ~~~~~~~~
-- Replaced all instances of `self.super` with the standard `super()` for better consistency and correctness.
-- Enhanced static analysis and code readability by adding and improving type hints for numerous variables, function arguments, and return values.
-- Improved type safety by replacing `typing.Any` with more specific types where possible.
-- Refactored `__getattr__` methods in `pytalk.channel.ChannelType` and `pytalk.user.User` to be more type-safe.
+- **Static Typing**: The entire codebase is now fully type-hinted and validated with `mypy` in strict mode.
+- **Code Quality**: Replaced all `self.super` calls with standard `super()`.
+- **Modernization**: Replaced `os.path` with `pathlib` for path manipulations.
+- **Type Safety**: Replaced `typing.Any` with more specific types where possible.
 
 Fixed
 ~~~~~
-- Fixed the `doPing` method in `pytalk.Server` which was using an incorrect attribute, causing it to fail.
-- Corrected a logic error in `pytalk.TeamTalkInstance.set_input_device` that would always raise a `ValueError`.
-- Fixed the default value for the `channel_type` argument in `pytalk.TeamTalkInstance.create_channel`.
-- Changed the return type of `kick_user` and `ban_user` methods in `pytalk.TeamTalkInstance` from `None` to `bool` to reflect their behavior.
-- Corrected the implementation of `move_user` in `pytalk.TeamTalkInstance`.
-- Fixed the signature of the `unban_user` method in `pytalk.Server` to correctly accept an `ip` string.
-- Consistently decode SDK string attributes in wrapper classes (`__getattr__` methods) to resolve `b''` prefixes and ensure consistent string handling across platforms.
-- Ensured `pytalk.Server.update_properties` correctly awaits SDK confirmation for server property updates, resolved an `AttributeError` due to incorrect object access, and improved error handling.
-- Corrected mapping for `USER_TEXTMESSAGE` in `pytalk.subscription._SubscriptionMeta.__getattr__` to `SUBSCRIBE_USER_MSG` for accurate SDK interaction.
-- Resolved immediate timeout in `pytalk.TeamTalkInstance.get_server_statistics` by correctly converting timeout to milliseconds. Also fixed `AttributeError` for statistics attributes by refining `_get_tt_obj_attribute` to properly handle acronyms and simplify attribute lookup.
-- Implemented platform-dependent path decoding in `pytalk.TeamTalkInstance.get_path_from_channel` to correctly handle channel paths on both Windows and Linux.
-- Resolved various `mypy` errors, improving overall type safety.
-- Resolved various Ruff linting errors (TC001, RET504, A002, E501, S602, S607, ARG002, ANN401, ANN003).
-- Fixed logical error in `Statistics.refresh()` method.
+- **Platform Compatibility**: Fixed channel path decoding in `pytalk.TeamTalkInstance.get_path_from_channel` for non-Windows platforms.
+- **API Correctness**:
+    - Ensured multiple methods consistently return strict `bool` values.
+    - Changed the return type of `kick_user` and `ban_user` methods to `bool`.
+    - Fixed the `unban_user` method signature to correctly accept an `ip` string.
+    - Corrected the `USER_TEXTMESSAGE` subscription mapping.
+    - Implemented consistent string decoding in wrapper classes to resolve `b''` prefixes.
+- **Bug Fixes**:
+    - Fixed the `doPing` method in `pytalk.Server`.
+    - Corrected a logic error in `pytalk.TeamTalkInstance.set_input_device`.
+    - Fixed the default value for `channel_type` in `pytalk.TeamTalkInstance.create_channel`.
+    - Corrected the implementation of `move_user` in `pytalk.TeamTalkInstance`.
+    - Fixed `update_properties` in `pytalk.Server` to correctly await SDK confirmation.
+    - Fixed a timeout conversion bug in `pytalk.TeamTalkInstance.get_server_statistics`.
+    - Fixed an `AttributeError` in statistics by improving `_get_tt_obj_attribute`.
+    - Fixed a logical error in the `Statistics.refresh()` method.
+- **Internal**:
+    - Resolved various `mypy` and `Ruff` linting errors.
+    - Ensured `uvloop` is only imported and used on Linux to prevent errors on other platforms.
 
 :version:`1.6.2` - 2025-10-12
 ---------------------------------
