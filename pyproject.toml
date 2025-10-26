@@ -86,6 +86,10 @@ ignore_errors = true
 module = "patoolib.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "uvloop"
+ignore_missing_imports = true
+
 [dependency-groups]
 dev = [
     "pre-commit~=4.3",
