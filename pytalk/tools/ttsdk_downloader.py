@@ -14,7 +14,7 @@ import requests
 from . import downloader
 
 url = "https://bearware.dk/teamtalksdk"
-VERSION_IDENTIFIER = "5.18"
+VERSION_IDENTIFIER = "5.19"
 
 cd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
