@@ -5,7 +5,7 @@ py-talk is a simple but powerful pythonic library for making bots for the [TeamT
 
 ### Installing
 
-Python 3.8 or higher is required
+Python 3.11 or higher is required
 
 #### From PyPI
 
@@ -18,20 +18,33 @@ pip install py-talk-ex
 ```bash
 git clone https://github.com/BlindMaster24/pytalk
 cd pytalk
-uv sync
+pip install pipx
+pipx install hatch
+hatch env create
 ```
 
+### Development
+
+To run development tasks like linting, formatting, and type checking, use `hatch run`:
+
+```bash
+hatch run dev:lint
+hatch run dev:format
+hatch run dev:typecheck
+hatch run docs:build
+hatch run sdk-download
+```
 
 ### Usage
 
 ```python
-import teamtalk
+import pytalk
 
 bot = pytalk.TeamTalkBot()
 
 @bot.event
 async def on_ready():
-    test_server = pytalk.TeamTalkServerInfo("localhost", 10335, 10335, "user", "pass")
+    test_server = pytalk.TeamTalkServerInfo({"host": "localhost", "tcp_port": 10335, "udp_port": 10335, "username": "user", "password": "pass"})
     await bot.add_server(test_server)
 
 @bot.event
@@ -51,7 +64,7 @@ You can find the full documentation [here](http://pytalk.readthedocs.io/en/lates
 
 ## Troubleshooting
 
-#### Erro when downloading the teamtalk sdk
+#### Error when downloading the teamtalk sdk
 
 
 ```

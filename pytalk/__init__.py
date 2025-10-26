@@ -1,3 +1,5 @@
+__version__ = "1.6.2"
+
 # if the implementation can't be found. Try to download it
 # from the internet and install it.
 
