@@ -55,7 +55,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "C90", "I", "N", "D", "UP", "ANN", "ASYNC", "S", "BLE", "A", "B", "C4", "DTZ", "ERA", "FA", "ICN", "PIE", "PL", "PT", "Q", "RSE", "RET", "SIM", "TID", "TCH", "INT", "ARG", "PERF", "FURB", "G"]
+select = ["E", "F", "W", "C90", "I", "N", "D", "UP", "ANN", "ASYNC", "S", "BLE", "A", "B", "C4", "DTZ", "ERA", "FA", "ICN", "PIE", "PL", "PT", "Q", "RSE", "RET", "SIM", "TID", "TCH", "INT", "ARG", "PERF", "FURB", "G", "PTH"]
 ignore = ["D203", "D211", "D212", "D213", "ISC001", "S603", "UP022", "N813", "D400", "D415"]
 
 
