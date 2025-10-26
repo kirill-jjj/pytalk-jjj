@@ -88,7 +88,7 @@ class User:
         msg.nFromUserID = self.teamtalk_instance.getMyUserID()
         msg.szFromUsername = self.teamtalk_instance.getMyUserAccount().szUsername
         msg.nToUserID = self.user_id
-        msg.szMessage = content
+        msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
         # get a pointer to our message
         self.teamtalk_instance._send_message(msg, **kwargs)
