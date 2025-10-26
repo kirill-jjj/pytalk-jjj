@@ -1,5 +1,12 @@
 # Gemini Context: Pytalk Project
 
+## ❗ Agent's Core Principle
+> **1. Focus on User Intent:** The AI agent's primary goal is to assist the user effectively. This requires careful analysis of user requests to ensure the agent's actions align with the user's specific intent, even if it requires deviation from a standard documented workflow.
+>
+> **2. Proactive Research and Problem-Solving:** The agent is expected to be a proactive problem-solver. When faced with questions, errors, or tasks that require knowledge not present in the immediate context (e.g., unfamiliar library usage, new API documentation, troubleshooting obscure errors), the agent must utilize its available tools and protocols. This includes performing web searches to consult official documentation and forums, as well as leveraging standards like **MCP (Model Context Protocol)** where applicable to interact with tools and gather context. The goal is to resolve ambiguities and acquire necessary knowledge independently.
+
+---
+
 ## 1. Project Overview
 
 **Pytalk** is a Python library designed to simplify the creation of bots for the TeamTalk 5 Conferencing System. It provides a high-level, asynchronous, event-driven API that wraps the underlying TeamTalk 5 SDK, abstracting away much of the low-level complexity.
@@ -133,6 +140,8 @@ The project uses `hatch` for dependency management and running tasks, and `gh` (
 
 > **Note:** The commands provided throughout this document are intended as examples. It is not always necessary to use them exactly as written. Please adapt them to fit the specific requirements of your task.
 
+> **Tip: Self-Correction and Verification:** If you are unsure about a `hatch` command, or suspect that new subcommands or options may have become available (e.g., after a library update), you should proactively verify the commands by running `hatch --help` or `hatch <command> --help` (e.g., `hatch version --help`). If you discover new or changed commands, you should update this `GEMINI.md` file to ensure the project context remains up-to-date for future AI agents.
+
 ### 6.1. Setup Virtual Environment and Install Dependencies
 
 To set up the development environment, first install `pipx` globally, then use it to install `hatch`. Finally, create the project's virtual environment and install all required dependencies (including development and documentation dependencies) using `hatch`.
@@ -218,6 +227,33 @@ The library is designed to automatically download the TeamTalk SDK on its first 
 hatch run sdk-download
 ```
 
+### 6.8. Version Management
+
+The project uses `hatch` to manage its version, which is stored in `pytalk/__init__.py` and dynamically read during the build process.
+
+#### Bumping the Version
+To increment the project's version according to semantic versioning, use the following commands:
+
+```bash
+# Bump the patch version (e.g., 1.0.0 -> 1.0.1)
+hatch version patch
+
+# Bump the minor version (e.g., 1.0.0 -> 1.1.0)
+hatch version minor
+
+# Bump the major version (e.g., 1.0.0 -> 2.0.0)
+hatch version major
+```
+
+#### Setting a Specific Version
+You can also set a specific version number directly:
+
+```bash
+# Set a specific version
+hatch version 2.0.0
+```
+**Note:** When in doubt about the exact command or its behavior, it is always a good practice to double-check by running `hatch version --help`.
+
 ## 7. Standard Development Workflow
 
 To contribute effectively to this project, follow this standard workflow:
@@ -243,36 +279,56 @@ To contribute effectively to this project, follow this standard workflow:
     ```
     If any of these commands fail, fix the issues and run them again until they all pass.
 
-4.  **Stage and Review Changes**: Stage your files and review them one last time before committing.
+4.  **Stage and Review Changes**: Review and stage your files for commit.
 
     ```bash
-
-    # Stage all changes
-
-    git add .
-
-
-
-    # Check the status to see what is staged
-
+    # First, check the status to see all modified files
     git status
 
-
+    # Next, add only the specific files related to your change.
+    # Avoid using `git add .` to prevent staging unrelated files.
+    git add <path/to/file1> <path/to/file2>
 
     # Review the exact changes that are staged for commit
-
     git diff --staged
-
     ```
 
 
 
 5.  **Commit Changes**: Commit your staged changes using the project's conventions.
 
+    To provide a multi-line commit message or one containing special characters, write the message to a temporary file and then use the `-F` flag. This is the **only allowed method** for committing.
+
+    **For Unix-like systems (Linux, macOS, Git Bash):**
     ```bash
+    # 1. Create a temporary file and write the commit message to it
+    #    (Replace the content with your actual commit message)
+    echo "✨ feat(scope): descriptive commit message" > commit_message.txt
+    echo "" >> commit_message.txt # Add a blank line for the body
+    echo "Detailed body of the commit message." >> commit_message.txt
+    echo "- List changes or reasons here." >> commit_message.txt
 
-    git commit -m "✨ feat(scope): descriptive commit message"
+    # 2. Commit using the message from the file
+    git commit -F commit_message.txt
 
+    # 3. Delete the temporary file after the commit
+    rm commit_message.txt
+    ```
+
+    **For Windows (Command Prompt/PowerShell):**
+    ```cmd
+    :: 1. Create a temporary file and write the commit message to it
+    ::    (Replace the content with your actual commit message)
+    echo "✨ feat(scope): descriptive commit message" > commit_message.txt
+    echo.>> commit_message.txt REM Add a blank line for the body
+    echo "Detailed body of the commit message." >> commit_message.txt
+    echo "- List changes or reasons here." >> commit_message.txt
+
+    :: 2. Commit using the message from the file
+    git commit -F commit_message.txt
+
+    :: 3. Delete the temporary file after the commit
+    del commit_message.txt
     ```
 
 
