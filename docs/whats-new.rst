@@ -38,6 +38,7 @@ Improved
 - **Code Quality**: Replaced all `self.super` calls with standard `super()`.
 - **Modernization**: Replaced `os.path` with `pathlib` for path manipulations.
 - **Type Safety**: Replaced `typing.Any` with more specific types where possible.
+- **Project Management**: Switched to `hatch` for project management, utilizing `uv` for dependency installation.
 
 Fixed
 ~~~~~
