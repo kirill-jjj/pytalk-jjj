@@ -11,9 +11,9 @@ from __future__ import annotations
 import asyncio
 import ctypes
 import logging
-import os
 import threading
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
@@ -1065,7 +1065,7 @@ class TeamTalkInstance(sdk.TeamTalk):
             raise PytalkPermissionError("You do not have permission to upload files")
         if channel_id < 0:
             raise ValueError("Channel ID must be greater than 0")
-        if not os.path.exists(filepath):
+        if not Path(filepath).exists():
             raise FileNotFoundError(f"File {filepath} does not exist")
         super().doSendFile(channel_id, sdk.ttstr(filepath))  # type: ignore [arg-type]
 
