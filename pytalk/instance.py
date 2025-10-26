@@ -1306,7 +1306,7 @@ class TeamTalkInstance(sdk.TeamTalk):
         result, msg = _wait_for_event(
             self,
             cast("sdk.ClientEvent", sdk.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS),
-            timeout,
+            timeout * 1000,  # Convert seconds to milliseconds
         )
         if not result:
             raise TimeoutError("The request for server statistics timed out.")

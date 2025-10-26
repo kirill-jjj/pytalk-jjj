@@ -70,33 +70,29 @@ def _get_abs_time_diff(t1: float, t2: float) -> int:
 def _get_tt_obj_attribute(obj: object, attr: str) -> object:
     name = ""
     for name_part in attr.split("_"):
-        # if the name_part is "id" or "ID" then we want to keep it as "ID"
+        # Handle specific acronyms
         if name_part.lower() == "id":
             name += "ID"
+        elif name_part.lower() == "tx":
+            name += "TX"
+        elif name_part.lower() == "rx":
+            name += "RX"
+        elif name_part.lower() == "msec":
+            name += "MSec"
+        # Preserve existing uppercase parts
+        elif name_part.isupper():
+            name += name_part
+        # Capitalize other parts
         else:
-            # otherwise we want to capitalize the first letter
             name += name_part.capitalize()
-    # first try to prefix with "n" and then get obj.name
-    try:
-        return getattr(obj, f"n{name}")
-    except AttributeError:
-        pass
-    # if that fails, try to prefix name with "sz" and then get obj.name
-    try:
-        return getattr(obj, f"sz{name}")
-    except AttributeError:
-        pass
-    # if that fails, try to prefix name with "b" and then get obj.name
-    try:
-        return getattr(obj, f"b{name}")
-    except AttributeError:
-        pass
-    # if that fails, try to prefix name with "u" and then get obj.name
-    try:
-        return getattr(obj, f"u{name}")
-    except AttributeError:
-        pass
-    # if that fails, try to lowercase the first letter name and then get obj.name
+    # Try with prefixes
+    prefixes = ["n", "sz", "b", "u"]
+    for prefix in prefixes:
+        try:
+            return getattr(obj, f"{prefix}{name}")
+        except AttributeError:
+            pass
+    # Try with lowercase first letter
     try:
         return getattr(obj, f"{name[0].lower()}{name[1:]}")
     except AttributeError:
