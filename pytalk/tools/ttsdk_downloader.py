@@ -1,11 +1,13 @@
+"""Script for downloading and installing the TeamTalk SDK."""
+
 #!/usr/bin/env python3
 
 # Modified from https://github.com/gumerov-amir/TTMediaBot
 
-import os
 import platform
 import shutil
 import sys
+from pathlib import Path
 
 import bs4
 import patoolib
@@ -16,36 +18,39 @@ from . import downloader
 url = "https://bearware.dk/teamtalksdk"
 VERSION_IDENTIFIER = "5.19"
 
-cd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+cd = Path(__file__).parent.parent.resolve()
 
 
 def get_url_suffix_from_platform() -> str:
+    """Determine the correct URL suffix for the SDK.
+
+    This is based on the current platform and architecture.
+    """
     machine = platform.machine()
     if sys.platform == "win32":
         architecture = platform.architecture()
-        if machine == "AMD64" or machine == "x86":
+        if machine in {"AMD64", "x86"}:
             if architecture[0] == "64bit":
                 return "win64"
-            else:
-                return "win32"
-        else:
-            sys.exit("Native Windows on ARM is not supported")
+            return "win32"
+        sys.exit("Native Windows on ARM is not supported")
     elif sys.platform == "darwin":
         sys.exit("Darwin is not supported")
+    elif machine in {"AMD64", "x86_64"}:
+        return "ubuntu22_x86_64"
+    elif "arm" in machine:
+        return "raspbian_armhf"
     else:
-        if machine == "AMD64" or machine == "x86_64":
-            return "ubuntu22_x86_64"
-        elif "arm" in machine:
-            return "raspbian_armhf"
-        else:
-            sys.exit("Your architecture is not supported")
+        sys.exit("Your architecture is not supported")
 
 
 def download() -> None:
+    """Download the TeamTalk SDK from the official website."""
     headers = {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
     }
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")
     versions = page.find_all("li")
@@ -57,64 +62,59 @@ def download() -> None:
         + "/"
         + version
         + "/"
-        + "tt5sdk_{v}_{p}.7z".format(v=version, p=get_url_suffix_from_platform())
+        + f"tt5sdk_{version}_{get_url_suffix_from_platform()}.7z"
     )
     print("Downloading from " + download_url)
-    downloader.download_file(download_url, os.path.join(cd, "ttsdk.7z"))
+    downloader.download_file(download_url, str(cd / "ttsdk.7z"))
 
 
 def extract() -> None:
+    """Extract the downloaded TeamTalk SDK archive."""
     try:
-        os.mkdir(os.path.join(cd, "ttsdk"))
+        (cd / "ttsdk").mkdir()
     except FileExistsError:
-        shutil.rmtree(os.path.join(cd, "ttsdk"))
-        os.mkdir(os.path.join(cd, "ttsdk"))
-    patoolib.extract_archive(
-        os.path.join(cd, "ttsdk.7z"), outdir=os.path.join(cd, "ttsdk")
-    )
+        shutil.rmtree(cd / "ttsdk")
+        (cd / "ttsdk").mkdir()
+    patoolib.extract_archive(str(cd / "ttsdk.7z"), outdir=str(cd / "ttsdk"))
 
 
 def move() -> None:
-    path = os.path.join(cd, "ttsdk", os.listdir(os.path.join(cd, "ttsdk"))[0])
+    """Move the extracted SDK files to their final destination."""
+    path = cd / "ttsdk" / next((cd / "ttsdk").iterdir())
     libraries = ["TeamTalk_DLL", "TeamTalkPy"]
     try:
-        os.makedirs(os.path.join(cd, "implementation"))
+        (cd / "implementation").mkdir(parents=True)
     except FileExistsError:
-        shutil.rmtree(os.path.join(cd, "implementation"))
-        os.makedirs(os.path.join(cd, "implementation"))
+        shutil.rmtree(cd / "implementation")
+        (cd / "implementation").mkdir(parents=True)
     for library in libraries:
         try:
-            os.rename(
-                os.path.join(path, "Library", library),
-                os.path.join(cd, "implementation", library),
-            )
+            (path / "Library" / library).rename(cd / "implementation" / library)
         except OSError:
-            shutil.rmtree(os.path.join(cd, "implementation", library))
-            os.rename(
-                os.path.join(path, "Library", library),
-                os.path.join(cd, "implementation", library),
-            )
+            shutil.rmtree(cd / "implementation" / library)
+            (path / "Library" / library).rename(cd / "implementation" / library)
         try:
-            os.remove(os.path.join(cd, "implementation", "__init__.py"))
+            (cd / "implementation" / "__init__.py").unlink()
         except OSError:
             pass
         finally:
-            with open(os.path.join(cd, "implementation", "__init__.py"), "w") as f:
-                f.write("")
+            (cd / "implementation" / "__init__.py").open("w").write("")
 
 
 def clean() -> None:
-    os.remove(os.path.join(cd, "ttsdk.7z"))
-    shutil.rmtree(os.path.join(cd, "ttsdk"))
-    shutil.rmtree(os.path.join(cd, "implementation", "TeamTalkPy", "test"))
+    """Clean up downloaded and extracted SDK files."""
+    (cd / "ttsdk.7z").unlink()
+    shutil.rmtree(cd / "ttsdk")
+    shutil.rmtree(cd / "implementation" / "TeamTalkPy" / "test")
 
 
 def install() -> None:
+    """Install the TeamTalk SDK components."""
     print("Installing TeamTalk sdk components")
     try:
         print("Downloading latest sdk version")
         download()
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         print("Failed to download sdk. Error: ", e)
         sys.exit(1)
     try:
@@ -123,19 +123,21 @@ def install() -> None:
     except patoolib.util.PatoolError as e:
         print("Failed to extract sdk. Error: ", e)
         print(
-            "This can typically happen, if you do not have 7zip or equivalent installed on your system."
+            "This can typically happen, if you do not have 7zip or equivalent "
+            "installed on your system."
         )
         print(
-            "On debian based systems, you can install 7zip by running 'sudo apt install p7zip'"
+            "On debian based systems, you can install 7zip by running "
+            "'sudo apt install p7zip'"
         )
         print("On Windows, you need to have 7zip installed and added to your PATH")
         sys.exit(1)
     print("Extracted. moving")
     move()
-    if not os.path.exists(os.path.join(cd, "implementation", "TeamTalk_DLL")):
+    if not (cd / "implementation" / "TeamTalk_DLL").exists():
         print("Failed to move TeamTalk_DLL")
         sys.exit(1)
-    if not os.path.exists(os.path.join(cd, "implementation", "TeamTalkPy")):
+    if not (cd / "implementation" / "TeamTalkPy").exists():
         print("Failed to move TeamTalkPy")
         sys.exit(1)
     print("moved. cleaning")
