@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: Build, Test, and Publish
 
 on:
   push:
@@ -11,7 +11,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ci-tests-${{ github.ref }}-1
+  group: ci-${{ github.ref }}-1
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -32,58 +32,53 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpulse0
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache Hatch environments (Linux)
+      - name: Cache (Linux)
         if: runner.os == 'Linux'
         uses: actions/cache@v4
         with:
-          path: ~/.local/share/hatch
-          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-${{ matrix.python-version }}-uv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
+            ${{ runner.os }}-${{ matrix.python-version }}-uv-
 
-      - name: Cache Hatch environments (Windows)
+      - name: Cache (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\hatch
-          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
+          path: '%LOCALAPPDATA%\uv-cache'
+          key: ${{ runner.os }}-${{ matrix.python-version }}-uv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
+            ${{ runner.os }}-${{ matrix.python-version }}-uv-
 
       - name: Install Hatch
         uses: pypa/hatch@install
 
-      - name: Install dependencies
+      - name: Install project dependencies
         run: hatch env create
 
       - name: Download TeamTalk SDK
         run: hatch run default:sdk-download
 
-      - name: Run linting
-        run: hatch run dev:lint
+      - name: Workaround for pre-commit/uv bug on Windows
+        if: runner.os == 'Windows'
+        run: hatch run python -m pip uninstall -y uv
 
-      - name: Run formatting check
-        run: hatch run dev:format -- --check
+      - name: Run all code quality checks
+        run: hatch run dev:check
 
-      - name: Run type checking
-        run: hatch run dev:typecheck
-
-      - name: Install pre-commit hooks
-        run: hatch run dev:hooks
-
-  builder_pytalk:
+  build-package:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
@@ -91,18 +86,18 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
 
-      - name: Build wheel
+      - name: Build package distributions
         run: hatch build
 
-      - name: Upload wheel artifact
+      - name: Upload distributions artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
           retention-days: 1
 
-  publisher_release:
-    needs: [builder_pytalk]
+  publish-to-pypi:
+    needs: [build-package]
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -120,7 +115,7 @@ jobs:
             exit 1;
           }
 
-      - name: Download wheel artifact
+      - name: Download distributions artifact
         uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
@@ -129,4 +124,4 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          verbose: true```
+          verbose: true
