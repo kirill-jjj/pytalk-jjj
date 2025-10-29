@@ -132,10 +132,19 @@ class TeamTalkInstance(sdk.TeamTalk):
         )
         if not result:
             return False
-        self.bot.dispatch("my_connect", self.server)
-        self.connected = True
-        self.init_time = time.time()
-        return True
+
+        if msg.nClientEvent == sdk.ClientEvent.CLIENTEVENT_CON_SUCCESS:
+            self.bot.dispatch("my_connect", self.server)
+            self.connected = True
+            self.init_time = time.time()
+            return True
+        if msg.nClientEvent == sdk.ClientEvent.CLIENTEVENT_CON_FAILED:
+            self.bot.dispatch("my_connect_failed", self.server)
+            return False
+        if msg.nClientEvent == sdk.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
+            self.bot.dispatch("my_connect_crypt_error", self.server)
+            return False
+        return False
 
     def login(self, join_channel_on_login: bool = True) -> bool:
         """Make a single synchronous attempt to log in to the server.
@@ -1335,41 +1344,22 @@ class TeamTalkInstance(sdk.TeamTalk):
             )
 
             if self.reconnect_enabled:
-                delay = self._backoff.delay()
-                if delay is not None:
-                    _log.info(
-                        "Kicked from %s. Attempting to reconnect in %.2f seconds...",
-                        self.server_info.host,
-                        delay,
-                    )
-                    asyncio.create_task(self._reconnect(delay))
-                else:
-                    _log.error(
-                        "Max retries exceeded for %s after being kicked. "
-                        "Stopping attempts.",
-                        self.server_info.host,
-                    )
+                _log.info(
+                    "Kicked from %s. Attempting to reconnect...",
+                    self.server_info.host,
+                )
+                asyncio.create_task(self._reconnect())
             return
         if event == sdk.ClientEvent.CLIENTEVENT_CON_LOST:
             self.connected = False
             self.logged_in = False
             self.bot.dispatch("my_connection_lost", self.server)
             if self.reconnect_enabled:
-                delay = self._backoff.delay()
-                if delay is not None:
-                    _log.info(
-                        "Connection lost to %s. "
-                        "Attempting to reconnect in %.2f seconds...",
-                        self.server_info.host,
-                        delay,
-                    )
-                    asyncio.create_task(self._reconnect(delay))
-                else:
-                    _log.error(
-                        "Max retries exceeded for %s after connection loss. "
-                        "Stopping attempts.",
-                        self.server_info.host,
-                    )
+                _log.info(
+                    "Connection lost to %s. Attempting to reconnect...",
+                    self.server_info.host,
+                )
+                asyncio.create_task(self._reconnect())
             return
 
         if event == sdk.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
@@ -1591,31 +1581,31 @@ class TeamTalkInstance(sdk.TeamTalk):
             )
             await asyncio.sleep(delay)
 
-    async def _reconnect(self, initial_delay: float) -> None:
-        await asyncio.sleep(initial_delay)
-
-        _log.info(
-            "Starting reconnection process to %s after initial delay of %.2fs.",
-            self.server_info.host,
-            initial_delay,
-        )
-
-        _log.debug(
-            "Attempting explicit disconnect for %s before reconnection loop.",
-            self.server_info.host,
-        )
-        await self.bot.loop.run_in_executor(None, self.disconnect)
-        _log.info(
-            "Explicit disconnect executed for %s. Proceeding to reconnection attempts.",
-            self.server_info.host,
-        )
-
+    async def _reconnect(self) -> None:
         while True:
+            delay = self._backoff.delay()
+            if delay is None:
+                _log.error(
+                    "Max retries exceeded for reconnecting to %s. Stopping attempts.",
+                    self.server_info.host,
+                )
+                return
+
+            _log.info(
+                "Will retry reconnect to %s in %.2f seconds...",
+                self.server_info.host,
+                delay,
+            )
+            await asyncio.sleep(delay)
+
             _log.info(
                 "Attempting reconnect to %s (attempt %s)...",
                 self.server_info.host,
                 self._backoff.attempts,
             )
+
+            await self.bot.loop.run_in_executor(None, self.disconnect)
+
             connected_ok = await self.bot.loop.run_in_executor(None, self.connect)
 
             if connected_ok:
@@ -1643,22 +1633,6 @@ class TeamTalkInstance(sdk.TeamTalk):
                     self._backoff.attempts,
                     self.server_info.host,
                 )
-
-            next_delay = self._backoff.delay()
-
-            if next_delay is None:
-                _log.error(
-                    "Max retries exceeded for reconnecting to %s. Stopping attempts.",
-                    self.server_info.host,
-                )
-                return
-
-            _log.info(
-                "Will retry reconnect to %s in %.2f seconds...",
-                self.server_info.host,
-                next_delay,
-            )
-            await asyncio.sleep(next_delay)
 
     def _get_channel_info(self, channel_id: int) -> tuple[sdk.Channel, str]:
         _channel = super().getChannel(channel_id)

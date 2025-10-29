@@ -15,11 +15,14 @@ DEF_WAIT = 1500
 
 
 def _wait_for_event(
-    ttclient: sdk.TeamTalk, event: sdk.ClientEvent, timeout: int = DEF_WAIT
+    ttclient: sdk.TeamTalk,
+    event: sdk.ClientEvent | list[sdk.ClientEvent],
+    timeout: int = DEF_WAIT,
 ) -> tuple[bool, sdk.TTMessage]:
+    events = event if isinstance(event, list) else [event]
     msg = ttclient.getMessage(timeout)
     end = timestamp() + timeout
-    while msg.nClientEvent != event:
+    while msg.nClientEvent not in events:
         if timestamp() >= end:
             return False, cast("Any", sdk.TTMessage())
         msg = ttclient.getMessage(timeout)
@@ -67,11 +70,13 @@ def _get_abs_time_diff(t1: float, t2: float) -> int:
     return abs(t1 - t2)
 
 
-def _get_tt_obj_attribute(obj: object, attr: str) -> object:
+def _get_tt_obj_attribute(obj: object, attr: str) -> object:  # noqa: C901
     name = ""
     for name_part in attr.split("_"):
         if name_part.lower() == "id":
             name += "ID"
+        elif name_part.lower() == "ip":
+            name += "IP"
         elif name_part.lower() == "tx":
             name += "TX"
         elif name_part.lower() == "rx":
