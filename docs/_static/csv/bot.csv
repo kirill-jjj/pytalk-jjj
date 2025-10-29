@@ -1,7 +1,9 @@
 on_message	pytalk.Message (either pytalk.ChannelMessage, pytalk.DirectMessage, pytalk.BroadcastMessage)	Called when the bot receives a message.
-on_my_connect	pytalk.Server	Called when the bot has successfully connected to the pytalk.Server
-on_my_login	pytalk.Server	Called when the bot has successfully logged in to the pytalk.Server
-on_my_logout	pytalk.Server	Called when the bot has successfully logged out from the pytalk.Server
-on_my_disconnec	pytalk.Server	Called when the bot has successfully disconnected from the pytalk.Server
-on_my_connection_lost	pytalk.instance	Called when the bot has lost connection to the pytalk.Server
-on_my_kicked_from_channel	pytalk.Channel	Called when the bot has been kicked from pytalk.Channel
+on_my_connect	pytalk.Server	Called when the bot has successfully connected to the pytalk.Server.
+on_my_connect_failed	pytalk.Server	Called when the bot has failed to connect to the pytalk.Server.
+on_my_connect_crypt_error	pytalk.Server	Called when the bot has failed to connect to the pytalk.Server due to a cryptography error.
+on_my_disconnect	pytalk.Server	Called when the bot has successfully disconnected from the pytalk.Server.
+on_my_login	pytalk.Server	Called when the bot has successfully logged in to the pytalk.Server.
+on_my_logout	pytalk.Server	Called when the bot has successfully logged out from the pytalk.Server.
+on_my_connection_lost	pytalk.instance	Called when the bot has lost connection to the pytalk.Server.
+on_my_kicked_from_channel	pytalk.Channel	Called when the bot has been kicked from pytalk.Channel.

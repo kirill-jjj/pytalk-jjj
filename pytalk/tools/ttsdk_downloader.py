@@ -50,6 +50,7 @@ def download() -> None:
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
     }
+<<<<<<< HEAD
     r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")

@@ -143,7 +143,7 @@ class TeamTalkBot:
     def event(self, coro: CoroT, /) -> CoroT:
         """Register an event to listen to.
 
-                The events must be a :ref:`coroutine <coroutine>`, if not,
+        The events must be a :ref:`coroutine <coroutine>`, if not,
         :exc:`TypeError` is raised.
 
         Example:
@@ -155,9 +155,8 @@ class TeamTalkBot:
             async def on_ready():
                 print('Ready!')
 
-
-                See the :doc:`event Reference </events>` for more information
-                and a list of all events.
+        See the :doc:`event Reference </events>` for more information
+        and a list of all events.
 
 
         Args:

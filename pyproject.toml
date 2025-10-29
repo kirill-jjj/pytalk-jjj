@@ -68,6 +68,7 @@ exclude = [
     "pytalk/implementation/*",
     "pytalk/__init__.py",
     "pytalk/implementation/__init__.py",
+    "pytalk/tools/*",
     "example.py",
 ]
 
@@ -83,6 +84,7 @@ exclude = [
     "tests/",
     "pytalk/implementation/",
     "pytalk/implementation/__init__.py",
+    "pytalk/tools/*",
     "example.py",
 ]
 disable_error_code = ["no-untyped-call"]
