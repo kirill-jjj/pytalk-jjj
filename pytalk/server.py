@@ -1,9 +1,14 @@
 """Provides the Server class for interacting with a TeamTalk5 server."""
 
 import ctypes
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from ._utils import _get_tt_obj_attribute, _set_tt_obj_attribute, _tt_attr_to_py_attr
+from ._utils import (
+    _get_tt_obj_attribute,
+    _set_tt_obj_attribute,
+    _tt_attr_to_py_attr,
+    _wait_for_cmd,
+)
 from .channel import Channel as TeamTalkChannel
 from .enums import TeamTalkServerInfo
 from .exceptions import PytalkPermissionError
@@ -12,6 +17,7 @@ from .implementation.TeamTalkPy import TeamTalk5 as sdk
 if TYPE_CHECKING:
     from .instance import TeamTalkInstance
 from .permission import Permission
+from .subscription import Subscription
 from .user import User as TeamTalkUser
 
 if TYPE_CHECKING:
@@ -40,7 +46,7 @@ class Server:
         self.teamtalk_instance = teamtalk_instance
         self.info = server_info
 
-    def send_message(self, content: str, **kwargs: object) -> int:
+    def send_message(self, content: str, **kwargs: object) -> None:
         """Send a message to all users on the server, using a broadcast message.
 
         Args:
@@ -64,9 +70,8 @@ class Server:
         msg.nFromUserID = self.teamtalk_instance.getMyUserID()
         msg.szFromUsername = self.teamtalk_instance.getMyUserAccount().szUsername
         msg.nToUserID = 0
-        msg.szMessage = sdk.ttstr(content)
+        msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        # get a pointer to our message
         return self.teamtalk_instance._send_message(msg, **kwargs)
 
     def ping(self) -> bool:
@@ -76,26 +81,26 @@ class Server:
             True if the ping is successful, False otherwise.
 
         """
-        return self.teamtalk_instance.super._DoPing(self.info.nServerPort)
+        return sdk._DoPing(self.teamtalk_instance._tt, self.info.tcp_port)  # type: ignore [no-any-return]
 
-    def get_users(self) -> list:
+    def get_users(self) -> list[TeamTalkUser]:
         """Get a list of users on the server.
 
         Returns:
             A list of pytalk.User instances representing the users on the server.
 
         """
-        users = self.teamtalk_instance.super.getServerUsers()
+        users = self.teamtalk_instance.getServerUsers()
         return [TeamTalkUser(self.teamtalk_instance, user) for user in users]
 
-    def get_channels(self) -> list:
+    def get_channels(self) -> list[TeamTalkChannel]:
         """Get a list of channels on the server.
 
         Returns:
             A list of pytalk.Channel instances representing the channels on the server.
 
         """
-        channels = self.teamtalk_instance.super.getServerChannels()
+        channels = self.teamtalk_instance.getServerChannels()
         return [
             TeamTalkChannel(self.teamtalk_instance, channel) for channel in channels
         ]
@@ -110,7 +115,7 @@ class Server:
             The pytalk.Channel instance representing the channel with the specified ID.
 
         """
-        channel = self.teamtalk_instance.super.getChannel(channel_id)
+        channel = self.teamtalk_instance.getChannel(channel_id)
         return TeamTalkChannel(self.teamtalk_instance, channel)
 
     def get_user(self, user_id: int) -> TeamTalkUser:
@@ -123,7 +128,7 @@ class Server:
             The pytalk.User instance representing the user with the specified ID.
 
         """
-        user = self.teamtalk_instance.super.getUser(user_id)
+        user = self.teamtalk_instance.getUser(user_id)
         return TeamTalkUser(self.teamtalk_instance, user)
 
     def join_channel(
@@ -152,7 +157,8 @@ class Server:
             _channel = channel
         if _channel is None:
             return False
-        return self.teamtalk_instance.join_channel(_channel, password)
+        self.teamtalk_instance.join_channel_by_id(_channel.id, password)
+        return True
 
     def get_statistics(self, timeout: int = 2) -> "TeamTalkServerStatistics":
         """Get the server statistics.
@@ -182,11 +188,14 @@ class Server:
         """
         if not self.teamtalk_instance.is_admin():
             raise PytalkPermissionError("You must be an admin to move users")
-        if isinstance(user, TeamTalkUser):
-            user = user.id
-        if isinstance(channel, TeamTalkChannel):
-            channel = channel.id
-        self.teamtalk_instance.move_user(user, channel)
+        user_id = cast(
+            "TeamTalkUser | int", user.id if isinstance(user, TeamTalkUser) else user
+        )
+        channel_id = cast(
+            "TeamTalkChannel | int",
+            channel.id if isinstance(channel, TeamTalkChannel) else channel,
+        )
+        self.teamtalk_instance.move_user(user_id, channel_id)
 
     def kick(self, user: TeamTalkUser | int) -> None:
         """Kicks the specified user from the specified channel.
@@ -212,19 +221,19 @@ class Server:
         """
         self.teamtalk_instance.ban_user(user, 0)
 
-    def unban(self, user: TeamTalkUser | int) -> None:
+    def unban(self, ip: str) -> None:
         """Unbans the specified user from the specified channel.
 
         Args:
-            user: The user to unban.
+            ip: The IP address of the user to unban.
 
         Raises:
             PytalkPermissionError: If the user is not an admin.
 
         """
-        self.teamtalk_instance.unban_user(user, 0)
+        self.teamtalk_instance.unban_user(ip, 0)
 
-    def subscribe(self, subscription: object) -> None:
+    def subscribe(self, subscription: Subscription) -> None:
         """Subscribe to the specified subscription for all users on the server.
 
         Args:
@@ -235,7 +244,7 @@ class Server:
         for user in users:
             user.subscribe(subscription)
 
-    def unsubscribe(self, subscription: object) -> None:
+    def unsubscribe(self, subscription: Subscription) -> None:
         """Unsubscribes to the specified subscription for all users on the server.
 
         Args:
@@ -254,7 +263,7 @@ class Server:
             server.
 
         """
-        props = self.teamtalk_instance.super.getServerProperties()
+        props = self.teamtalk_instance.getServerProperties()
         return ServerProperties(self.teamtalk_instance, props)
 
     def update_properties(self, properties: "ServerProperties") -> None:
@@ -270,14 +279,30 @@ class Server:
 
         """
         if not self.teamtalk_instance.has_permission(
-            Permission.UPDATE_SERVERPROPERTIES
+            cast("int", Permission.UPDATE_SERVERPROPERTIES)
         ):
             raise PytalkPermissionError(
                 "The bot does not have permission to update the server properties"
             )
-        # get the underlying properties object
-        properties = properties.properties
-        sdk._DoUpdateServer(self.teamtalk_instance._tt, ctypes.byref(properties))
+        result = sdk._DoUpdateServer(
+            self.teamtalk_instance._tt,
+            ctypes.byref(cast("sdk.ServerProperties", properties.properties)),
+        )
+        if result == -1:
+            raise ValueError("Server properties could not be updated")
+        cmd_result, cmd_err = _wait_for_cmd(self.teamtalk_instance, result, 2000)
+        if not cmd_result:
+            err_nr = cmd_err.nErrorNo
+            if err_nr == sdk.ClientError.CMDERR_NOT_LOGGEDIN:
+                raise PytalkPermissionError("The bot is not logged in")
+            if err_nr == sdk.ClientError.CMDERR_NOT_AUTHORIZED:
+                raise PytalkPermissionError(
+                    "The bot does not have permission to update server properties"
+                )
+            raise ValueError(
+                f"Server properties update failed with error: "
+                f"{sdk.ttstr(cmd_err.szErrorMsg)}"
+            )
 
     def __getattr__(self, name: str) -> object:
         """Try to get the specified attribute on server.
@@ -361,7 +386,10 @@ class ServerProperties(metaclass=_ServerPropertiesMeta):
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self.properties, name)
+        value = _get_tt_obj_attribute(self.properties, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value
 
     def __setattr__(self, name: str, value: object) -> None:
         """Try to set the specified attribute on properties.
@@ -378,5 +406,4 @@ class ServerProperties(metaclass=_ServerPropertiesMeta):
             self.__dict__[name] = value
         else:
             _get_tt_obj_attribute(self.properties, name)
-            # if we have gotten here, we can set the attribute
             _set_tt_obj_attribute(self.properties, name, value)

@@ -1,6 +1,6 @@
 """Channel module for pytalk."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ._utils import _get_tt_obj_attribute, _set_tt_obj_attribute, _wait_for_cmd
 from .exceptions import PytalkPermissionError
@@ -9,6 +9,7 @@ from .implementation.TeamTalkPy import TeamTalk5 as sdk
 if TYPE_CHECKING:
     from .instance import TeamTalkInstance
 from .permission import Permission
+from .subscription import Subscription
 from .tt_file import RemoteFile
 from .user import User as TeamTalkUser
 
@@ -27,12 +28,10 @@ class Channel:
 
         """
         self.teamtalk = teamtalk
-        # if the channel_id is a int, set it to the channel_id
         if isinstance(channel, int):
             self.id = channel
             self._channel, self.path = self.teamtalk._get_channel_info(self.id)
 
-        # if the channel is a sdk.Channel, set it to self._channel
         elif isinstance(channel, sdk.Channel):
             self._channel = channel
             self.id = channel.nChannelID
@@ -57,15 +56,17 @@ class Channel:
 
         """
         if not self.teamtalk.has_permission(
-            Permission.MODIFY_CHANNELS
-        ) or not sdk._IsChannelOperator(self._tt, self.super.getMyUserID(), self.id):
+            cast("int", Permission.MODIFY_CHANNELS)
+        ) or not sdk._IsChannelOperator(
+            self.teamtalk._tt, self.teamtalk.getMyUserID(), self.id
+        ):
             raise PytalkPermissionError(
                 "the bot does not have permission to update the channel."
             )
         result = sdk._DoUpdateChannel(self.teamtalk._tt, self._channel)
         if result == -1:
             raise ValueError("Channel could not be updated")
-        cmd_result, cmd_err = _wait_for_cmd(self.super, result, 2000)
+        cmd_result, cmd_err = _wait_for_cmd(self.teamtalk, result, 2000)
         if not cmd_result:
             err_nr = cmd_err.nErrorNo
             if err_nr == sdk.ClientError.CMDERR_NOT_LOGGEDIN:
@@ -97,9 +98,6 @@ class Channel:
             PytalkPermissionError: If the bot is not in the channel and is not an admin.
 
         """
-        # get the bots current channel id with getMyChannelID
-        # if the bots current channel id is not the same as the channel id we are
-        # trying to send a message to, return
         if self.teamtalk.getMyChannelID() != self.id and not self.teamtalk.is_admin():
             raise PytalkPermissionError(
                 "Missing permission to send message to a channel the bot is not in"
@@ -109,9 +107,8 @@ class Channel:
         msg.nFromUserID = self.teamtalk.getMyUserID()
         msg.szFromUsername = self.teamtalk.getMyUserAccount().szUsername
         msg.nChannelID = self.id
-        msg.szMessage = sdk.ttstr(content)
+        msg.szMessage = sdk.ttstr(content)  # type: ignore [arg-type]
         msg.bMore = False
-        # get a pointer to our message
         self.teamtalk._send_message(msg, **kwargs)
 
     def upload_file(self, filepath: str) -> None:
@@ -130,7 +127,7 @@ class Channel:
             List[TeamTalkUser]: A list of pytalk.User instances in the channel.
 
         """
-        users = self.teamtalk.super.getChannelUsers(self.id)
+        users = self.teamtalk.getChannelUsers(self.id)
         return [TeamTalkUser(self.teamtalk, user) for user in users]
 
     def get_files(self) -> list[RemoteFile]:
@@ -140,7 +137,7 @@ class Channel:
             List[RemoteFile]: A list of pytalk.RemoteFile instances in the channel.
 
         """
-        files = self.teamtalk.super.getChannelFiles(self.id)
+        files = self.teamtalk.getChannelFiles(self.id)
         return [RemoteFile(self.teamtalk, f) for f in files]
 
     def move(self, user: TeamTalkUser | int) -> None:
@@ -150,7 +147,7 @@ class Channel:
             user: The user to move.
 
         """
-        self.teamtalk.move_user(user, self, False)
+        self.teamtalk.move_user(user, self)
 
     def kick(self, user: TeamTalkUser | int) -> None:
         """Kick a user from this channel.
@@ -170,7 +167,7 @@ class Channel:
         """
         self.teamtalk.ban_user(user, self)
 
-    def subscribe(self, subscription: object) -> None:
+    def subscribe(self, subscription: Subscription) -> None:
         """Subscribe to a subscription for all users in this channel.
 
         Args:
@@ -181,7 +178,7 @@ class Channel:
         for user in users:
             user.subscribe(subscription)
 
-    def unsubscribe(self, subscription: object) -> None:
+    def unsubscribe(self, subscription: Subscription) -> None:
         """Unsubscribe from a subscription for all users in this channel.
 
         Args:
@@ -205,7 +202,10 @@ class Channel:
         """
         if name in dir(self):
             return self.__dict__[name]
-        return _get_tt_obj_attribute(self._channel, name)
+        value = _get_tt_obj_attribute(self._channel, name)
+        if isinstance(value, (bytes, sdk.TTCHAR, sdk.TTCHAR_P)):
+            return sdk.ttstr(cast("sdk.TTCHAR_P", value))
+        return value
 
     def __setattr__(self, name: str, value: object) -> None:
         """Try to set the specified attribute.
@@ -229,14 +229,16 @@ class Channel:
             self.__dict__[name] = value
         else:
             _get_tt_obj_attribute(self._channel, name)
-            # if we have gotten here, we can set the attribute
             _set_tt_obj_attribute(self._channel, name, value)
 
 
 class _ChannelTypeMeta(type):
-    def __getattr__(cls, name: str) -> sdk.UserRight:
+    def __getattr__(cls, name: str) -> int:
         name = f"CHANNEL_{name}"
-        return getattr(sdk.ChannelType, name, None)
+        value = getattr(sdk.ChannelType, name, None)
+        if value is None:
+            raise AttributeError(f"'{cls.__name__}' object has no attribute '{name}'")
+        return cast("int", value)
 
     def __dir__(cls) -> list[str]:
         return [

@@ -21,7 +21,6 @@ Example:
                         output = True)
                 stream = streams[block.user.id]
                 stream.write(block.data) # Play the audio data.
-                # for more information, see the AudioBlock class
 
 
                 See the :doc:`event Reference </events>` for more information and a
@@ -31,7 +30,7 @@ Example:
 """
 
 import ctypes
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
 from ._utils import _get_tt_obj_attribute
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
@@ -41,11 +40,11 @@ if TYPE_CHECKING:
 
 _AcquireUserAudioBlock = sdk.function_factory(
     sdk.dll.TT_AcquireUserAudioBlock,
-    [sdk.POINTER(sdk.AudioBlock), [sdk._TTInstance, sdk.StreamType, sdk.INT32]],
+    [sdk.POINTER(sdk.AudioBlock), [sdk._TTInstance, sdk.StreamType, sdk.INT32]],  # type: ignore [attr-defined]
 )
 _ReleaseUserAudioBlock = sdk.function_factory(
     sdk.dll.TT_ReleaseUserAudioBlock,
-    [sdk.BOOL, [sdk._TTInstance, sdk.POINTER(sdk.AudioBlock)]],
+    [sdk.BOOL, [sdk._TTInstance, sdk.POINTER(sdk.AudioBlock)]],  # type: ignore [attr-defined]
 )
 
 
@@ -62,7 +61,7 @@ class AudioBlock:
 
     """
 
-    def __init__(self, user: "TeamTalkUser", block: sdk.AudioBlock) -> None:
+    def __init__(self, user: "TeamTalkUser | None", block: sdk.AudioBlock) -> None:
         """Represent an audio block for the on_user_audio event.
 
         Args:
@@ -70,11 +69,11 @@ class AudioBlock:
             block: The underlying AudioBlock object.
 
         """
-        self.user = user
+        self._user = user
         self._block = block
         self.id = block.nStreamID
         self.data_pointer = block.lpRawAudio
-        self._data = None
+        self._data = b""
 
     @property
     def data(self) -> bytes:
@@ -90,6 +89,11 @@ class AudioBlock:
             buffer_ptr = ctypes.cast(self.data_pointer, ctypes.POINTER(buffer_type))
             self._data = bytes(buffer_ptr.contents)
         return self._data
+
+    @property
+    def user(self) -> "TeamTalkUser | None":
+        """The user that the audio is from."""
+        return self._user
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         """Try to get the attribute from the AUdioBlock object.
@@ -134,6 +138,12 @@ class MuxedAudioBlock(AudioBlock):
         """
         super().__init__(None, block)
 
-        @property
-        def user(self: Self) -> None:  # noqa: ARG001
-            raise AttributeError("MuxedAudioBlock has no attribute 'user'")
+    @property
+    def user(self) -> None:
+        """The user that the audio is from.
+
+        Raises:
+            AttributeError: MuxedAudioBlock has no attribute 'user'
+
+        """
+        raise AttributeError("MuxedAudioBlock has no attribute 'user'")

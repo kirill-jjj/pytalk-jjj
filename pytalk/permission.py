@@ -3,13 +3,15 @@
 permissions.
 """
 
+from typing import cast
+
 from .implementation.TeamTalkPy import TeamTalk5 as sdk
 
 
 class _PermissionMeta(type):
     def __getattr__(cls, name: str) -> sdk.UserRight:
         name = f"USERRIGHT_{name}"
-        return getattr(sdk.UserRight, name, None)
+        return cast("sdk.UserRight", getattr(sdk.UserRight, name, None))
 
     def __dir__(cls) -> list[str]:
         return [

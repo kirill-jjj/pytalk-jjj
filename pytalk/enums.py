@@ -1,12 +1,12 @@
 """TeamTalk enums and constants."""
 
-from typing import Self
+from typing import Any, Self
 
 
 class TeamTalkServerInfo:
     """Holds the required information to connect and login to a TeamTalk server."""
 
-    def __init__(self, data: dict) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         """Initialize a TeamTalkServerInfo object.
 
         Args:
@@ -14,8 +14,8 @@ class TeamTalkServerInfo:
 
         """
         self.host = data.get("host")
-        self.tcp_port = data.get("tcp_port")
-        self.udp_port = data.get("udp_port")
+        self.tcp_port = data.get("tcp_port", 0)
+        self.udp_port = data.get("udp_port", 0)
         self.username = data.get("username")
         self.password = data.get("password", "")
         self.encrypted = data.get("encrypted", False)
@@ -24,7 +24,7 @@ class TeamTalkServerInfo:
         self.join_channel_password = data.get("join_channel_password", "")
 
     @classmethod
-    def from_dict(cls, data: dict) -> Self:
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         """Construct a TeamTalkServerInfo object from a dictionary.
 
         Args:
@@ -36,8 +36,7 @@ class TeamTalkServerInfo:
         """
         return cls(data)
 
-    # convert this object to a dictionary
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert this object to a dictionary.
 
         Returns:
@@ -56,7 +55,6 @@ class TeamTalkServerInfo:
             "join_channel_password": self.join_channel_password,
         }
 
-    # compare this object to another object
     def __eq__(self, other: object) -> bool:
         """Compare this object to another object.
 
@@ -78,7 +76,6 @@ class TeamTalkServerInfo:
             and self.encrypted == other.encrypted
         )
 
-    # compare this object to another object
     def __ne__(self, other: object) -> bool:
         """Compare this object to another object.
 
@@ -205,36 +202,18 @@ class Status:
     """A bitmask for extracting the gender bits from a combined status integer."""
 
     @classmethod
-    @property
     def online(cls) -> _StatusBuilder:
-        """Sets the user status to 'online'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'online'."""
         return cls._StatusBuilder(UserStatusMode.ONLINE)
 
     @classmethod
-    @property
     def away(cls) -> _StatusBuilder:
-        """Sets the user status to 'away'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'away'."""
         return cls._StatusBuilder(UserStatusMode.AWAY)
 
     @classmethod
-    @property
     def question(cls) -> _StatusBuilder:
-        """Sets the user status to 'question'.
-
-        Returns:
-            _StatusBuilder: An internal builder to further specify gender.
-
-        """
+        """Set the user status to 'question'."""
         return cls._StatusBuilder(UserStatusMode.QUESTION)
 
 

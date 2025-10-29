@@ -10,11 +10,7 @@ import logging
 import sys
 import types
 from collections.abc import Callable, Coroutine
-from typing import (
-    Any,
-    Self,
-    TypeVar,
-)
+from typing import Any, Self, TypeVar
 
 if sys.platform.startswith("linux"):
     import uvloop
@@ -52,17 +48,16 @@ class TeamTalkBot:
         """
         self.client_name = client_name
         self.loop: asyncio.AbstractEventLoop = _loop
-        # hold a list of TeamTalk instances
         self.teamtalks: list[TeamTalkInstance] = []
         self._listeners: dict[
-            str, list[tuple[asyncio.Future, Callable[..., bool]]]
+            str, list[tuple[asyncio.Future[Any], Callable[..., bool]]]
         ] = {}
 
     async def add_server(
         self,
-        server: TeamTalkServerInfo | dict,
+        server: TeamTalkServerInfo | dict[str, Any],
         reconnect: bool = True,
-        backoff_config: dict | None = None,
+        backoff_config: dict[str, Any] | None = None,
     ) -> None:
         """Add a server to the bot.
 
@@ -102,24 +97,18 @@ class TeamTalkBot:
                 uvloop.install()
                 _log.info("Using uvloop as the event loop policy.")
             except (ImportError, NameError):
-                pass  # uvloop not installed or not imported, using default loop
+                pass
 
         async def runner() -> None:
             async with self:
                 await self._start()
 
         try:
-            # set our loop the asyncio event loop
             asyncio.run(runner())
         except KeyboardInterrupt:
-            # nothing to do here
-            # `asyncio.run` handles the loop cleanup
-            # and `self.start` closes all sockets and the HTTPClient instance.
             return
 
     async def _async_setup_hook(self) -> None:
-        # Called whenever the client needs to initialise asyncio objects with a
-        # running loop
         loop = asyncio.get_running_loop()
         self.loop = loop
 
@@ -154,7 +143,7 @@ class TeamTalkBot:
     def event(self, coro: CoroT, /) -> CoroT:
         """Register an event to listen to.
 
-                The events must be a :ref:`coroutine <coroutine>`, if not,
+        The events must be a :ref:`coroutine <coroutine>`, if not,
         :exc:`TypeError` is raised.
 
         Example:
@@ -166,9 +155,8 @@ class TeamTalkBot:
             async def on_ready():
                 print('Ready!')
 
-
-                See the :doc:`event Reference </events>` for more information
-                and a list of all events.
+        See the :doc:`event Reference </events>` for more information
+        and a list of all events.
 
 
         Args:
@@ -212,10 +200,8 @@ class TeamTalkBot:
         event_name: str,
         *args: object,
         **kwargs: object,
-    ) -> asyncio.Task:
-        # print all the events to log
+    ) -> asyncio.Task[Any]:
         wrapped = self._run_event(coro, event_name, *args, **kwargs)
-        # Schedules the task
         return self.loop.create_task(wrapped, name=f"teamtalk.py: {event_name}")
 
     async def on_error(
@@ -291,22 +277,18 @@ class TeamTalkBot:
 
     async def _start(self) -> None:
         self.dispatch("ready")
-        # make a while loop and allow it to run forever
         try:
             while True:
-                # loop through the teamtalks and check  for events
                 for teamtalk in self.teamtalks:
                     await teamtalk._process_events()
                 await asyncio.sleep(0.001)
         except KeyboardInterrupt:
-            # try to disconnect everything cleanly
             for teamtalk in self.teamtalks:
-                # disconnect from the server
                 teamtalk.doLogout()
                 self.dispatch("my_logout", teamtalk.server)
                 teamtalk.disconnect()
                 self.dispatch("my_disconnect", teamtalk.server)
 
-    async def _do_after_delay(self, delay: float, func: Callable) -> None:  # noqa: ARG002
+    async def _do_after_delay(self, delay: float, func: Callable[..., Any]) -> None:  # noqa: ARG002
         await asyncio.sleep(delay)
         print("WORKS")
