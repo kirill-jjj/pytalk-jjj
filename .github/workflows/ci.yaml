@@ -1,4 +1,4 @@
-name: Build, Test, and Publish
+name: Continuous Integration
 
 on:
   push:
@@ -11,7 +11,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ci-${{ github.ref }}-1
+  group: ci-tests-${{ github.ref }}-1
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -30,55 +30,59 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpulse0
+          sudo apt-get install -y libpulse0 p7zip-full libasound2 python-is-python3
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Install system dependencies (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: choco install 7zip
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache (Linux)
+      - name: Cache Hatch environments (Linux)
         if: runner.os == 'Linux'
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-${{ matrix.python-version }}-uv-${{ hashFiles('pyproject.toml') }}
+          path: ~/.local/share/hatch
+          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-uv-
+            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
 
-      - name: Cache (Windows)
+      - name: Cache Hatch environments (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
-          path: '%LOCALAPPDATA%\uv-cache'
-          key: ${{ runner.os }}-${{ matrix.python-version }}-uv-${{ hashFiles('pyproject.toml') }}
+          path: ~\AppData\Local\hatch
+          key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-uv-
+            ${{ runner.os }}-${{ matrix.python-version }}-hatch-
 
       - name: Install Hatch
         uses: pypa/hatch@install
 
-      - name: Install project dependencies
-        run: hatch env create
+      - name: Install dependencies
+        run: hatch env create dev
 
       - name: Download TeamTalk SDK
         run: hatch run default:sdk-download
 
-      - name: Workaround for pre-commit/uv bug on Windows
-        if: runner.os == 'Windows'
-        run: hatch run python -m pip uninstall -y uv
+      - name: Run a basic import test
+        run: hatch run python -c "import pytalk"
 
-      - name: Run all code quality checks
+      - name: Run precommit and all checks
         run: hatch run dev:check
 
-  build-package:
+
+  builder_pytalk:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
@@ -86,18 +90,18 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
 
-      - name: Build package distributions
+      - name: Build wheel
         run: hatch build
 
-      - name: Upload distributions artifact
+      - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
           retention-days: 1
 
-  publish-to-pypi:
-    needs: [build-package]
+  publisher_release:
+    needs: [builder_pytalk]
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -115,7 +119,7 @@ jobs:
             exit 1;
           }
 
-      - name: Download distributions artifact
+      - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
@@ -124,4 +128,4 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          verbose: true
+          verbose: true```
